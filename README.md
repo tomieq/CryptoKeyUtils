@@ -52,3 +52,25 @@ rGI/RGsVoG+qJ9bCPO2USb4mIYcE5VAMfA==
 -----END EC PRIVATE KEY-----
 ```
 The starting `04` in pub section is just meta data and is not part of `x` nor `y` it should be dropped.
+
+## Swift Package Manager
+```swift
+import PackageDescription
+
+let package = Package(
+    name: "MyServer",
+    dependencies: [
+        .package(url: "https://github.com/tomieq/CryptoKeyUtils", branch: "master")
+    ]
+)
+```
+in the target:
+```swift
+    targets: [
+        .executableTarget(
+            name: "AppName",
+            dependencies: [
+                .product(name: "CryptoKeyUtils", package: "CryptoKeyUtils")
+            ])
+    ]
+```
