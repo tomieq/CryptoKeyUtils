@@ -11,6 +11,11 @@ import SwiftExtensions
 /*
  Works only with P-256/secp256r1
  */
+public enum ECKeyFormat {
+    case hexString(x: String, y: String, d: String)
+    case jwk(x: String, y: String, d: String)
+}
+
 public struct ECKeyPair {
     let x: Data
     let y: Data
@@ -27,17 +32,19 @@ public struct ECKeyPair {
         self.y = Data(y)
         self.d = Data(d)
     }
-
-    public init(xHexString: String, yHexString: String, dHexString: String) throws {
-        self.x = Data(hexString: xHexString)
-        self.y = Data(hexString: yHexString)
-        self.d = Data(hexString: dHexString)
-    }
     
-    public init(xJWK: String, yJWK: String, dJWK: String) throws {
-        self.x = try Base64Decoder.data(base64: xJWK)
-        self.y = try Base64Decoder.data(base64: yJWK)
-        self.d = try Base64Decoder.data(base64: dJWK)
+    public init(_ format: ECKeyFormat) throws {
+        switch format {
+        case .hexString(let x, let y, let d):
+            self.x = Data(hexString: x)
+            self.y = Data(hexString: y)
+            self.d = Data(hexString: d)
+        case .jwk(let x, let y, let d):
+            self.x = try Base64Decoder.data(base64: x)
+            self.y = try Base64Decoder.data(base64: y)
+            self.d = try Base64Decoder.data(base64: d)
+        }
+        
     }
     
     public var publicKeyDER: Data {
