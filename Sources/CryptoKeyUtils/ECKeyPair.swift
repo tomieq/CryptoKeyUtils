@@ -34,6 +34,12 @@ public struct ECKeyPair {
         self.d = Data(hexString: dHexString)
     }
     
+    public init(xJWK: String, yJWK: String, dJWK: String) throws {
+        self.x = try Base64Decoder.data(base64: xJWK)
+        self.y = try Base64Decoder.data(base64: yJWK)
+        self.d = try Base64Decoder.data(base64: dJWK)
+    }
+    
     public var publicKeyDER: Data {
         // OID for `EC Public Key` + `secp256r1`
         let derHeader: [UInt8] = [

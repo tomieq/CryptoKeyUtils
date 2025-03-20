@@ -4,7 +4,7 @@ Simple library to convert raw `P-256/secp256r1` x, y, d key into `DER` and `PEM`
 
 ## Usage
 
-Create from hex string:
+#### Create from hex string:
 ```swift
 let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
 let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
@@ -16,6 +16,25 @@ let privateKey = key.privatePEM
 
 There is also convienient initializer for `[UInt8]` and `Data`.
 
+#### Create from JWK
+
+Key might be distributed in `JWK` format:
+```
+{
+  "kty" : "EC",
+  "crv" : "P-256",
+  "x"   : "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74",
+  "y"   : "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI",
+  "d"   : "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
+}
+```
+In that case you can use:
+```swift
+let d = "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
+let x = "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74"
+let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
+let key = try ECKeyPair(xJWK: x, yJWK: y, dJWK: d)
+```
 
 ## OpenSSL commands
 
