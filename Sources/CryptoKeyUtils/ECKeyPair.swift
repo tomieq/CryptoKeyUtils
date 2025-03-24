@@ -17,9 +17,9 @@ public enum ECKeyFormat {
 }
 
 public struct ECKeyPair {
-    let x: Data
-    let y: Data
-    let d: Data
+    public let x: Data
+    public let y: Data
+    public let d: Data
     
     public init(x: Data, y: Data, d: Data) {
         self.x = x
@@ -48,21 +48,17 @@ public struct ECKeyPair {
     }
     
     public var publicKeyDER: Data {
-        // OID for `EC Public Key` + `secp256r1`
-        let derHeader: [UInt8] = [
-            0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x02, 0x01,
-            0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07, 0x03, 0x42, 0x00
-        ]
-        
-        var derKey = Data(derHeader)
-        
         var keyData = Data([0x04])
         keyData.append(x)
         keyData.append(y)
-        
-        derKey.append(keyData)
-        
-        return derKey
+
+        return ASN1.sequence(nodes: [
+            .sequence(nodes: [
+                .objectID(data: OID.ecPublicKey.data!),
+                .objectID(data: OID.prime256v1.data!)
+            ]),
+            .bitString(data: keyData)
+        ]).data
     }
     
     public var privateKeyDER: Data {
