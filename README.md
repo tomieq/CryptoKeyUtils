@@ -9,7 +9,7 @@ Simple library to convert raw `P-256/secp256r1` x, y, d key into `DER` and `PEM`
 let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
 let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
 let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-let key = try ECKeyPair(.hexString(x: x, y: y, d: d))
+let key = try ECPrivateKey(.hexString(x: x, y: y, d: d))
 
 let privateKey = key.privatePEM
 ```
@@ -33,7 +33,7 @@ In that case you can use:
 let d = "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
 let x = "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74"
 let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
-let key = try ECKeyPair(.jwk(x: x, y: y, d: d))
+let key = try ECPrivateKey(.jwk(x: x, y: y, d: d))
 ```
 
 #### Create signature from `r`, `s`:
@@ -88,6 +88,10 @@ rGI/RGsVoG+qJ9bCPO2USb4mIYcE5VAMfA==
 ```
 The starting `04` in pub section is just meta data and is not part of `x` nor `y` it should be dropped.
 
+#### Preview ASN1 file with openssl:
+```
+openssl asn1parse -inform DER -in signature.der
+```
 ## Swift Package Manager
 ```swift
 import PackageDescription

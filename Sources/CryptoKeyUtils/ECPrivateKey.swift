@@ -1,5 +1,5 @@
 //
-//  ECKeyPair.swift
+//  ECPrivateKey.swift
 //  CryptoKeyUtils
 //
 //  Created by Tomasz on 20/03/2025.
@@ -11,54 +11,35 @@ import SwiftExtensions
 /*
  Works only with P-256/secp256r1
  */
-public enum ECKeyFormat {
+public enum ECPrivateKeyFormat {
     case hexString(x: String, y: String, d: String)
     case jwk(x: String, y: String, d: String)
 }
 
-public struct ECKeyPair {
-    public let x: Data
-    public let y: Data
+public struct ECPrivateKey {
+    public let publicKey: ECPublicKey
     public let d: Data
     
     public init(x: Data, y: Data, d: Data) {
-        self.x = x
-        self.y = y
+        self.publicKey = ECPublicKey(x: x, y: y)
         self.d = d
     }
     
     public init(x: [UInt8], y: [UInt8], d: [UInt8]) {
-        self.x = Data(x)
-        self.y = Data(y)
+        self.publicKey = ECPublicKey(x: x, y: y)
         self.d = Data(d)
     }
     
-    public init(_ format: ECKeyFormat) throws {
+    public init(_ format: ECPrivateKeyFormat) throws {
         switch format {
         case .hexString(let x, let y, let d):
-            self.x = Data(hexString: x)
-            self.y = Data(hexString: y)
+            self.publicKey = try ECPublicKey(.hexString(x: x, y: y))
             self.d = Data(hexString: d)
         case .jwk(let x, let y, let d):
-            self.x = try Base64Decoder.data(base64: x)
-            self.y = try Base64Decoder.data(base64: y)
+            self.publicKey = try ECPublicKey(.jwk(x: x, y: y))
             self.d = try Base64Decoder.data(base64: d)
         }
         
-    }
-    
-    public var publicKeyDER: Data {
-        var keyData = Data([0x04])
-        keyData.append(x)
-        keyData.append(y)
-
-        return ASN1.sequence(nodes: [
-            .sequence(nodes: [
-                .objectID(data: OID.ecPublicKey.data!),
-                .objectID(data: OID.prime256v1.data!)
-            ]),
-            .bitString(data: keyData)
-        ]).data
     }
     
     public var privateKeyDER: Data {
@@ -81,17 +62,10 @@ public struct ECKeyPair {
         
         // 0x04 means that x and y are concatenated
         var publicKeyData = Data([0x04])
-        publicKeyData.append(x)
-        publicKeyData.append(y)
+        publicKeyData.append(publicKey.x)
+        publicKeyData.append(publicKey.y)
         derKey.append(publicKeyData)
         return derKey
-    }
-    
-    public var publicKeyPEM: String {
-        let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
-        let pemFooter = "\n-----END PUBLIC KEY-----"
-        let base64Key = publicKeyDER.base64EncodedString(options: .lineLength64Characters)
-        return pemHeader + base64Key + pemFooter
     }
     
     public var privateKeyPEM: String {
