@@ -15,14 +15,14 @@ public struct Signature {
     public let r: Data
     public let s: Data
     
-    public init(x: Data, y: Data) {
-        self.r = x
-        self.s = y
+    public init(r: Data, s: Data) {
+        self.r = r
+        self.s = s
     }
     
-    public init(x: [UInt8], y: [UInt8]) {
-        self.r = Data(x)
-        self.s = Data(y)
+    public init(r: [UInt8], s: [UInt8]) {
+        self.r = Data(r)
+        self.s = Data(s)
     }
     
     public init(_ format: SignatureFormat) throws {
