@@ -4,7 +4,7 @@ Simple library to convert raw `P-256/secp256r1` x, y, d key into `DER` and `PEM`
 
 ## Usage
 
-#### Create from hex string:
+#### Create ECKey from hex string:
 ```swift
 let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
 let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
@@ -16,7 +16,7 @@ let privateKey = key.privatePEM
 
 There is also convienient initializer for `[UInt8]` and `Data`.
 
-#### Create from JWK
+#### Create ECKey from JWK
 
 Key might be distributed in `JWK` format:
 ```
@@ -36,6 +36,22 @@ let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
 let key = try ECKeyPair(.jwk(x: x, y: y, d: d))
 ```
 
+#### Create signature from `r`, `s`:
+```
+let signature = try Signature(.hexString(r: "1A19BD103D5EA607F6A40C86E4D24938ABBD3FD041A1EDA47D689B263BB5D797",
+                                         s: "EB57F23D543AA1007449292B4A64FB1C131517ADA9AABDF0BD4B03F08D6983E2"))
+let der = signature.der
+```
+### Parse ASN1 der file:
+```
+print(try ASN1(data: signature.der))
+```
+Will result with:
+```
+Sequence:
+    Integer: 1A19BD103D5EA607F6A40C86E4D24938ABBD3FD041A1EDA47D689B263BB5D797
+    Integer: 00EB57F23D543AA1007449292B4A64FB1C131517ADA9AABDF0BD4B03F08D6983E2
+```
 ## OpenSSL commands
 
 #### Using openssl to generate secp256r1 key pair:
