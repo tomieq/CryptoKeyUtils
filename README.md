@@ -54,11 +54,18 @@ Sequence:
 ```
 ## OpenSSL commands
 
-#### Using openssl to generate secp256r1 key pair:
+#### List all available EC curves
+```
+openssl ecparam -list_curves
+```
+#### Using openssl to generate `secp256r1` key pair:
 ```
 openssl ecparam -genkey -name prime256v1 -noout -out private.pem
 ```
-
+#### Extract public key:
+```
+openssl ec -in private.pem -pubout -out public.pem
+```
 #### Key investigation
 ```
 openssl ec -in private.pem -text
