@@ -1,4 +1,5 @@
 import Foundation
+import SwiftExtensions
 
 extension ASN1 {
     
@@ -28,7 +29,7 @@ extension ASN1 {
                 let length = try scanner.consumeLength()
                 let data = try scanner.consume(length: length)
                 let nodes = try decodeSequence(data: data)
-                return .sequence(nodes: nodes)
+                return .sequence(nodes)
                 
             case Tag.boolean.rawValue:
                 let length = try scanner.consumeLength()
@@ -65,6 +66,12 @@ extension ASN1 {
                 return .octetString(data: data)
                 
             default:
+                if firstByte & Tag.contextSpecific.rawValue == Tag.contextSpecific.rawValue {
+                    let length = try scanner.consumeLength()
+                    let data = try scanner.consume(length: length)
+                    let nodes = try decodeSequence(data: data)
+                    return .contextSpecific(tag: firstByte, nodes)
+                }
                 print("Unhandled: \(firstByte.hexString)")
                 throw DecodingError.invalidType(value: firstByte)
             }

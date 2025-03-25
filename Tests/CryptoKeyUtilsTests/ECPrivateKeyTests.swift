@@ -42,11 +42,23 @@ struct ECPrivateKeyTests {
         let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
         let key = try ECPrivateKey(.hexString(x: x, y: y, d: d))
 
-        let privatePEM = key.privateKeyPEM
+        let privatePEM = key.pem
         print(privatePEM)
         #expect(privatePEM.contains("MHcCAQEEIFOJMmeobWPRNAAeVpBDb+avsF8EgguliiGXNHyXtSeaoAoGCCqGSM49"))
         #expect(privatePEM.contains("AwEHoUQDQgAEQFlk7Nn7MULhf/yadlMA9QAFdhIHJ14nqY9VS7eOkEsuTSfG26BC"))
         #expect(privatePEM.contains("vTHFMmBJ8kGYpmchPr9h+jGRjp3VNda/ew=="))
+    }
+    
+    @Test func verifyPrivateDer() throws {
+        let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
+        let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
+        let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
+        let key = try ECPrivateKey(.hexString(x: x, y: y, d: d))
+
+        let expected = "3077020101042053893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279AA00A06082A8648CE3D030107A14403420004405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
+        let privateDer = key.der
+        #expect(privateDer.hexString == expected)
+        print(try ASN1(data: privateDer))
     }
     
     @Test func keyFromJWK() throws {

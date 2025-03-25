@@ -98,8 +98,8 @@ public struct ECPublicKey {
         keyData.append(x)
         keyData.append(y)
 
-        return ASN1.sequence(nodes: [
-            .sequence(nodes: [
+        return ASN1.sequence([
+            .sequence([
                 .objectID(data: OID.ecPublicKey.data!),
                 .objectID(data: OID.prime256v1.data!)
             ]),

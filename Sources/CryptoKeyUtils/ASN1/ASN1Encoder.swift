@@ -25,6 +25,10 @@ extension ASN1 {
                 return Tag.sequence.bytes + self.asn1LengthPrefixed( nodes.reduce(into: Array<UInt8>(), { partialResult, node in
                     partialResult += encode(node)
                 }))
+            case .contextSpecific(let tag, let nodes):
+                return [tag] + self.asn1LengthPrefixed( nodes.reduce(into: Array<UInt8>(), { partialResult, node in
+                    partialResult += encode(node)
+                }))
             }
         }
 

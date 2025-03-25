@@ -18,6 +18,9 @@ public enum ASN1: CustomStringConvertible {
         case bitString = 0x03
         case octetString = 0x04
         
+        // class
+        case contextSpecific = 0x80
+        
         static func == (lhs: UInt8, rhs: Tag) -> Bool {
             lhs == rhs.rawValue
         }
@@ -32,7 +35,8 @@ public enum ASN1: CustomStringConvertible {
         }
     }
     
-    case sequence(nodes: [ASN1])
+    case sequence([ASN1])
+    case contextSpecific(tag: UInt8, [ASN1])
     case boolean(data: Data)
     case integer(data: Data)
     case objectID(data: Data)
@@ -66,6 +70,9 @@ public enum ASN1: CustomStringConvertible {
             str.append("\(prefix)OctetString: \(os.hexString)")
         case .sequence(let nodes):
             str.append("\(prefix)Sequence:")
+            nodes.forEach { str.append(printNode($0, level: level + 1)) }
+        case .contextSpecific(let tag, let nodes):
+            str.append("\(prefix)Context-specific[\(tag.hexString)]:")
             nodes.forEach { str.append(printNode($0, level: level + 1)) }
         }
         return str.joined(separator: "\n")

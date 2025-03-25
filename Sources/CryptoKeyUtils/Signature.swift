@@ -37,7 +37,7 @@ public struct Signature {
     }
     
     public var der: Data {
-        ASN1.sequence(nodes: [
+        ASN1.sequence([
             .integer(data: ASN1.EncodeInteger(data: r)),
             .integer(data: ASN1.EncodeInteger(data: s))
         ]).data
