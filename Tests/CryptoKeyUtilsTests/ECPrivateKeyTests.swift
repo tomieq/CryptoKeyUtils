@@ -91,4 +91,18 @@ struct ECPrivateKeyTests {
         let oid = "1.2.840.10045.4.3.2"
         #expect(OID.decodeOID(data: OID.encodeOID(oid: oid)!) == oid)
     }
+    
+    @Test func pkcs8() throws {
+        let rawPem = """
+        -----BEGIN PRIVATE KEY-----
+        MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgSpP55ELdXswj9JRZ
+        APRwtTfS4CNRqpKIs+28rNHiPAqhRANCAASs8nLES7b+goKslppNVOurf0MonZdw
+        3pb6TxS8Z/5j+UNY1sWK1ChxpuwNS9I3R50cfdQo/lA9PPhw6XIg8ytd
+        -----END PRIVATE KEY-----
+        """
+        let key = try ECPrivateKey(pkcs8Pem: rawPem)
+        #expect(key.d.hexString == "4A93F9E442DD5ECC23F4945900F470B537D2E02351AA9288B3EDBCACD1E23C0A")
+        #expect(key.publicKey.x.hexString == "ACF272C44BB6FE8282AC969A4D54EBAB7F43289D9770DE96FA4F14BC67FE63F9")
+        #expect(key.publicKey.y.hexString == "4358D6C58AD42871A6EC0D4BD237479D1C7DD428FE503D3CF870E97220F32B5D")
+    }
 }

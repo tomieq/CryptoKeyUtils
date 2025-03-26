@@ -58,7 +58,7 @@ public struct ECPrivateKey {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
         guard elements.count == 4 else {
-            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 2 elements")
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 4 elements")
         }
         guard case .integer(let version) = elements[0], version.integer == 0x01 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
@@ -90,6 +90,63 @@ public struct ECPrivateKey {
             .replacingOccurrences(of: "\n", with: "")
         let der = try Base64Decoder.data(base64: rawPem)
         try self.init(der: der)
+    }
+    
+    public init(pkcs8Der: Data) throws {
+        let asn1 = try ASN1(data: pkcs8Der)
+        print(asn1)
+        
+        guard case .sequence(let elements) = asn1 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
+        }
+        guard elements.count == 3 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 3 elements")
+        }
+        guard case .integer(let version) = elements[0], version.integer == 0x00 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
+        }
+        guard case .sequence(let values) = elements[1], values.count == 2,
+              case .objectID(let oidData) = values[1], let oid = OID(data: oidData),
+                oid.isEllipticCurve else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing OID")
+        }
+        guard case .octetString(let keyAsnData) = elements[2] else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing Key data")
+        }
+        let keyAsn = try ASN1(data: keyAsnData)
+        guard case .sequence(let elements) = keyAsn else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Expected Key SEQUENCE")
+        }
+        guard elements.count == 3 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Key SEQUENCE should contain 3 elements")
+        }
+        guard case .integer(let version) = elements[0], version.integer == 0x01 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Key Version")
+        }
+        guard case .octetString(let d) = elements[1] else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing private key d")
+        }
+        guard case .contextSpecific(_, let values) = elements[2], values.count == 1,
+              case .bitString(let publicData) = values[0], publicData.count == 65 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
+        }
+        
+        publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64])
+        self.d = d
+    }
+    
+    public init(pkcs8Pem: String) throws {
+        let pkcs8Header = "-----BEGIN PRIVATE KEY-----"
+        let pkcs8Footer = "-----END PRIVATE KEY-----"
+        guard pkcs8Pem.contains(pkcs8Header), pkcs8Pem.contains(pkcs8Footer) else {
+            throw ECPrivateKeyError.invalidPemStructure(reason: "Invalid header or footer")
+        }
+        let rawPem = pkcs8Pem
+            .replacingOccurrences(of: pkcs8Header, with: "")
+            .replacingOccurrences(of: pkcs8Footer, with: "")
+            .replacingOccurrences(of: "\n", with: "")
+        let der = try Base64Decoder.data(base64: rawPem)
+        try self.init(pkcs8Der: der)
     }
     
     public var der: Data {
