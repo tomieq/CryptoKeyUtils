@@ -16,6 +16,11 @@ public enum ECPrivateKeyFormat {
     case jwk(x: String, y: String, d: String)
 }
 
+public enum ECPrivateKeyError: Error {
+    case invalidDerStructure(reason: String)
+    case invalidPemStructure(reason: String)
+}
+
 public struct ECPrivateKey {
     public let publicKey: ECPublicKey
     public let d: Data
@@ -43,6 +48,48 @@ public struct ECPrivateKey {
             self.d = try Base64Decoder.data(base64: d)
         }
         
+    }
+    
+    public init(der: Data) throws {
+        let asn1 = try ASN1(data: der)
+        print(asn1)
+        
+        guard case .sequence(let elements) = asn1 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
+        }
+        guard elements.count == 4 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 2 elements")
+        }
+        guard case .integer(let version) = elements[0], version.integer == 0x01 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
+        }
+        guard case .octetString(let d) = elements[1] else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing private key d")
+        }
+        guard case .contextSpecific(_, let values) = elements[2], values.count == 1,
+              case .objectID(let oidData) = values[0], let oid = OID(data: oidData),
+                oid.isEllipticCurve else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing OID")
+        }
+        guard case .contextSpecific(_, let values) = elements[3], values.count == 1,
+              case .bitString(let publicData) = values[0], publicData.count == 65 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
+        }
+        
+        publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64])
+        self.d = d
+    }
+
+    public init(pem: String) throws {
+        guard pem.contains(Self.pemHeader), pem.contains(Self.pemFooter) else {
+            throw ECPrivateKeyError.invalidPemStructure(reason: "Invalid header or footer")
+        }
+        let rawPem = pem
+            .replacingOccurrences(of: Self.pemHeader, with: "")
+            .replacingOccurrences(of: Self.pemFooter, with: "")
+            .replacingOccurrences(of: "\n", with: "")
+        let der = try Base64Decoder.data(base64: rawPem)
+        try self.init(der: der)
     }
     
     public var der: Data {
