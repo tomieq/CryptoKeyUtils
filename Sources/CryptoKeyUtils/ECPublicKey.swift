@@ -77,7 +77,6 @@ public struct ECPublicKey {
         guard case .bitString(let numbers) = elements[1], numbers.count == 65, numbers[0] == 0x04 else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected BITSTRING with x and y values")
         }
-        print("Loaded public key with \(curveType) elliptic curve type")
         x = Data(numbers[1...32])
         y = Data(numbers[33...64])
     }

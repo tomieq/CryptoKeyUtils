@@ -52,7 +52,6 @@ public struct ECPrivateKey {
     
     public init(der: Data) throws {
         let asn1 = try ASN1(data: der)
-        print(asn1)
         
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
@@ -94,7 +93,6 @@ public struct ECPrivateKey {
     
     public init(pkcs8Der: Data) throws {
         let asn1 = try ASN1(data: pkcs8Der)
-        print(asn1)
         
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
