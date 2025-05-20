@@ -42,7 +42,7 @@ struct ECPrivateKeyTests {
         let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
         let key = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
 
-        let privatePEM = key.pem
+        let privatePEM = key.pem(format: .sec1)
         print(privatePEM)
         #expect(privatePEM.contains("MHcCAQEEIFOJMmeobWPRNAAeVpBDb+avsF8EgguliiGXNHyXtSeaoAoGCCqGSM49"))
         #expect(privatePEM.contains("AwEHoUQDQgAEQFlk7Nn7MULhf/yadlMA9QAFdhIHJ14nqY9VS7eOkEsuTSfG26BC"))
@@ -56,7 +56,7 @@ struct ECPrivateKeyTests {
         let key = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
 
         let expected = "3077020101042053893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279AA00A06082A8648CE3D030107A14403420004405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-        let privateDer = key.der
+        let privateDer = key.der(format: .sec1)
         #expect(privateDer.hexString == expected)
         print(try ASN1(data: privateDer))
     }
@@ -107,5 +107,8 @@ struct ECPrivateKeyTests {
         #expect(key.publicKey.x.hexString == "ACF272C44BB6FE8282AC969A4D54EBAB7F43289D9770DE96FA4F14BC67FE63F9")
         #expect(key.publicKey.y.hexString == "4358D6C58AD42871A6EC0D4BD237479D1C7DD428FE503D3CF870E97220F32B5D")
         #expect(key.curve == .secp256r1)
+        print("Raw: \n\(rawPem)")
+        print("Generated: \n\(key.pem(format: .pkcs8))")
+        #expect(key.pem(format: .pkcs8).filter { !$0.isWhitespace } == rawPem.filter { !$0.isWhitespace })
     }
 }

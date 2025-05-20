@@ -68,7 +68,7 @@ public struct ECPrivateKey {
         }
     }
     
-    static func guessFormat(asn1: ASN1) -> ECFormat? {
+    static func guessFormat(asn1: ASN1) -> ECBinaryFormat? {
         guard case .sequence(let elements) = asn1 else {
             return nil
         }
@@ -168,9 +168,9 @@ public struct ECPrivateKey {
     }
 
     public init(pem: String) throws {
-        var format: ECFormat {
+        var format: ECBinaryFormat {
             get throws {
-                for format in ECFormat.allCases {
+                for format in ECBinaryFormat.allCases {
                     if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
                         return format
                     }
@@ -188,7 +188,16 @@ public struct ECPrivateKey {
         try self.init(der: der)
     }
     
-    public var der: Data {
+    public func der(format: ECBinaryFormat) -> Data {
+        switch format {
+        case .sec1:
+            sec1Der
+        case .pkcs8:
+            pkcs8Der
+        }
+    }
+    
+    var sec1Der: Data {
         // 0x04 means that x and y are concatenated
         var publicKeyData = Data([0x04])
         publicKeyData.append(publicKey.x)
@@ -202,8 +211,29 @@ public struct ECPrivateKey {
         ]).data
     }
     
-    public var pem: String {
-        let base64Key = der.base64EncodedString(options: .lineLength64Characters)
-        return ECFormat.sec1.pemHeader + base64Key + ECFormat.sec1.pemFooter
+    var pkcs8Der: Data {
+        // 0x04 means that x and y are concatenated
+        var publicKeyData = Data([0x04])
+        publicKeyData.append(publicKey.x)
+        publicKeyData.append(publicKey.y)
+        
+        let privateKey = ASN1.sequence([
+            .integer(data: Data([0x01])),
+            .octetString(data: d),
+            .contextSpecific(tag: 0xa1, [.bitString(data: publicKeyData)])
+        ]).data
+        return ASN1.sequence([
+            .integer(data: Data([0x00])),
+            .sequence([
+                .objectID(data: OID.ecPublicKey.data!),
+                .objectID(data: OID.encodeOID(oid: curve.oid)!)
+            ]),
+            .octetString(data: privateKey)
+        ]).data
+    }
+    
+    public func pem(format: ECBinaryFormat) -> String {
+        let base64Key = der(format: format).base64EncodedString(options: .lineLength64Characters)
+        return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }
 }
