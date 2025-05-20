@@ -81,7 +81,7 @@ struct ECPrivateKeyTests {
 
         let der = "3077020101042053893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279AA00A06082A8648CE3D030107A14403420004405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
         
-        let key = try ECPrivateKey(der: Data(hexString: der))
+        let key = try ECPrivateKey(der: Data(hexString: der), format: .sec1)
         #expect(key.d.hexString == d)
         #expect(key.publicKey.x.hexString == x)
         #expect(key.publicKey.y.hexString == y)
@@ -100,7 +100,7 @@ struct ECPrivateKeyTests {
         3pb6TxS8Z/5j+UNY1sWK1ChxpuwNS9I3R50cfdQo/lA9PPhw6XIg8ytd
         -----END PRIVATE KEY-----
         """
-        let key = try ECPrivateKey(pkcs8Pem: rawPem)
+        let key = try ECPrivateKey(pem: rawPem)
         #expect(key.d.hexString == "4A93F9E442DD5ECC23F4945900F470B537D2E02351AA9288B3EDBCACD1E23C0A")
         #expect(key.publicKey.x.hexString == "ACF272C44BB6FE8282AC969A4D54EBAB7F43289D9770DE96FA4F14BC67FE63F9")
         #expect(key.publicKey.y.hexString == "4358D6C58AD42871A6EC0D4BD237479D1C7DD428FE503D3CF870E97220F32B5D")

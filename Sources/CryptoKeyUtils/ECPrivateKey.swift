@@ -24,9 +24,6 @@ public enum ECPrivateKeyError: Error {
 public struct ECPrivateKey {
     public let publicKey: ECPublicKey
     public let d: Data
-
-    static let pemHeader = "-----BEGIN EC PRIVATE KEY-----\n"
-    static let pemFooter = "\n-----END EC PRIVATE KEY-----"
     
     public init(x: Data, y: Data, d: Data) {
         self.publicKey = ECPublicKey(x: x, y: y)
@@ -49,8 +46,26 @@ public struct ECPrivateKey {
         }
         
     }
+
+    public init(der: Data, format: ECFormat) throws {
+        switch format {
+        case .sec1:
+            try self.init(sec1: der)
+        case .pkcs8:
+            try self.init(pkcs8: der)
+        }
+    }
     
-    public init(der: Data) throws {
+    // https://www.ietf.org/rfc/rfc5915.txt
+    /*
+     ECPrivateKey ::= SEQUENCE {
+        version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+        privateKey     OCTET STRING,
+        parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+        publicKey  [1] BIT STRING OPTIONAL
+     }
+     */
+    init(sec1 der: Data) throws {
         let asn1 = try ASN1(data: der)
         
         guard case .sequence(let elements) = asn1 else {
@@ -68,37 +83,31 @@ public struct ECPrivateKey {
         guard case .contextSpecific(_, let values) = elements[2], values.count == 1,
               case .objectID(let oidData) = values[0], let oid = OID(data: oidData),
                 oid.isEllipticCurve else {
-            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing OID")
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing invalid OID for AlgorithmIdentifier")
         }
         guard case .contextSpecific(_, let values) = elements[3], values.count == 1,
               case .bitString(let publicData) = values[0], publicData.count == 65 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
-        
-        publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64])
-        self.d = d
-    }
-
-    public init(pem: String) throws {
-        guard pem.contains(Self.pemHeader), pem.contains(Self.pemFooter) else {
-            throw ECPrivateKeyError.invalidPemStructure(reason: "Invalid header or footer")
-        }
-        let rawPem = pem
-            .replacingOccurrences(of: Self.pemHeader, with: "")
-            .replacingOccurrences(of: Self.pemFooter, with: "")
-            .replacingOccurrences(of: "\n", with: "")
-        let der = try Base64Decoder.data(base64: rawPem)
-        try self.init(der: der)
+        self.init(x: publicData[1...32], y: publicData[33...64], d: d)
     }
     
-    public init(pkcs8Der: Data) throws {
-        let asn1 = try ASN1(data: pkcs8Der)
+    // PKCS#8 https://www.ietf.org/rfc/rfc5208.txt
+    /*
+     PrivateKeyInfo ::= SEQUENCE {
+       version                   Version,
+       privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
+       privateKey                PrivateKey,
+       attributes           [0]  IMPLICIT Attributes OPTIONAL }
+     */
+    init(pkcs8 der: Data) throws {
+        let asn1 = try ASN1(data: der)
         
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
-        guard elements.count == 3 else {
-            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 3 elements")
+        guard elements.count > 2 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain at least 3 elements")
         }
         guard case .integer(let version) = elements[0], version.integer == 0x00 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
@@ -106,7 +115,7 @@ public struct ECPrivateKey {
         guard case .sequence(let values) = elements[1], values.count == 2,
               case .objectID(let oidData) = values[1], let oid = OID(data: oidData),
                 oid.isEllipticCurve else {
-            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing OID")
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
         }
         guard case .octetString(let keyAsnData) = elements[2] else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing Key data")
@@ -132,19 +141,26 @@ public struct ECPrivateKey {
         publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64])
         self.d = d
     }
-    
-    public init(pkcs8Pem: String) throws {
-        let pkcs8Header = "-----BEGIN PRIVATE KEY-----"
-        let pkcs8Footer = "-----END PRIVATE KEY-----"
-        guard pkcs8Pem.contains(pkcs8Header), pkcs8Pem.contains(pkcs8Footer) else {
-            throw ECPrivateKeyError.invalidPemStructure(reason: "Invalid header or footer")
+
+    public init(pem: String) throws {
+        var format: ECFormat {
+            get throws {
+                for format in ECFormat.allCases {
+                    if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
+                        return format
+                    }
+                }
+                throw ECPublicKeyError.invalidPemStructure(reason: "Unknown PEM private key header ot footer")
+            }
         }
-        let rawPem = pkcs8Pem
-            .replacingOccurrences(of: pkcs8Header, with: "")
-            .replacingOccurrences(of: pkcs8Footer, with: "")
+        let pemFormat = try format
+        print("Detected PEM in format \(pemFormat)")
+        let rawPem = pem
+            .replacingOccurrences(of: pemFormat.pemHeader, with: "")
+            .replacingOccurrences(of: pemFormat.pemFooter, with: "")
             .replacingOccurrences(of: "\n", with: "")
         let der = try Base64Decoder.data(base64: rawPem)
-        try self.init(pkcs8Der: der)
+        try self.init(der: der, format: pemFormat)
     }
     
     public var der: Data {
@@ -163,6 +179,6 @@ public struct ECPrivateKey {
     
     public var pem: String {
         let base64Key = der.base64EncodedString(options: .lineLength64Characters)
-        return Self.pemHeader + base64Key + Self.pemFooter
+        return ECFormat.sec1.pemHeader + base64Key + ECFormat.sec1.pemFooter
     }
 }
