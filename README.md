@@ -1,15 +1,31 @@
 # CryptoKeyUtils
 
-Simple library to convert raw `P-256/secp256r1` x, y, d key into `DER` and `PEM` format.
+Simple library to convert raw curve points x, y, d key into `DER` and `PEM` format.
+
+## Supported EC curves
+
+| Curve | openSSL    | JWK    |
+| :---   | :--- | :--- |
+| secp256r1 | prime256v1  | P-256  |
+| secp384r1 | secp384r1   | P-384  |
+| secp521r1 | secp521r1   | P-521  |
+| Curve25519 | x25519     | X25519 |
+| secp256k1 | secp256k1   | secp256k1  |
+
+
+## Supported EC DER formats
+ - sec1 rfc5915
+ - pkcs8 rfc5208
 
 ## Usage
+
 
 #### Create ECKey from hex string:
 ```swift
 let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
 let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
 let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-let key = try ECPrivateKey(.hexString(x: x, y: y, d: d))
+let key = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
 
 let privateKey = key.privatePEM
 ```
@@ -33,7 +49,8 @@ In that case you can use:
 let d = "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
 let x = "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74"
 let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
-let key = try ECPrivateKey(.jwk(x: x, y: y, d: d))
+let crv = "P-256"
+let key = try ECPrivateKey(.jwk(x: x, y: y, d: d, crv: crv))
 ```
 
 #### Create signature from `r`, `s`:

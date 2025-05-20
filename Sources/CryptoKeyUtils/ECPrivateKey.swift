@@ -12,37 +12,43 @@ import SwiftExtensions
  Works only with P-256/secp256r1
  */
 public enum ECPrivateKeyFormat {
-    case hexString(x: String, y: String, d: String)
-    case jwk(x: String, y: String, d: String)
+    case hexString(x: String, y: String, d: String, curve: ECCurve)
+    case jwk(x: String, y: String, d: String, crv: String)
 }
 
 public enum ECPrivateKeyError: Error {
     case invalidDerStructure(reason: String)
     case invalidPemStructure(reason: String)
+    case unsupportedCurve
 }
 
 public struct ECPrivateKey {
     public let publicKey: ECPublicKey
     public let d: Data
+    public let curve: ECCurve
     
-    public init(x: Data, y: Data, d: Data) {
-        self.publicKey = ECPublicKey(x: x, y: y)
+    public init(x: Data, y: Data, d: Data, curve: ECCurve) {
+        self.publicKey = ECPublicKey(x: x, y: y, curve: curve)
         self.d = d
+        self.curve = curve
     }
     
-    public init(x: [UInt8], y: [UInt8], d: [UInt8]) {
-        self.publicKey = ECPublicKey(x: x, y: y)
+    public init(x: [UInt8], y: [UInt8], d: [UInt8], curve: ECCurve) {
+        self.publicKey = ECPublicKey(x: x, y: y, curve: curve)
         self.d = Data(d)
+        self.curve = curve
     }
     
     public init(_ format: ECPrivateKeyFormat) throws {
         switch format {
-        case .hexString(let x, let y, let d):
-            self.publicKey = try ECPublicKey(.hexString(x: x, y: y))
+        case .hexString(let x, let y, let d, let curve):
+            self.publicKey = try ECPublicKey(.hexString(x: x, y: y, curve: curve))
             self.d = Data(hexString: d)
-        case .jwk(let x, let y, let d):
-            self.publicKey = try ECPublicKey(.jwk(x: x, y: y))
+            self.curve = curve
+        case .jwk(let x, let y, let d, let crv):
+            self.publicKey = try ECPublicKey(.jwk(x: x, y: y, crv: crv))
             self.d = try Base64Decoder.data(base64: d)
+            self.curve = try ECCurve(jwk: crv) ?! ECPrivateKeyError.unsupportedCurve
         }
         
     }
@@ -81,15 +87,15 @@ public struct ECPrivateKey {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing private key d")
         }
         guard case .contextSpecific(_, let values) = elements[2], values.count == 1,
-              case .objectID(let oidData) = values[0], let oid = OID(data: oidData),
-                oid.isEllipticCurve else {
+              case .objectID(let oidData) = values[0], let oid = OID.decodeOID(data: oidData),
+        let curve = ECCurve(oid: oid) else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing invalid OID for AlgorithmIdentifier")
         }
         guard case .contextSpecific(_, let values) = elements[3], values.count == 1,
               case .bitString(let publicData) = values[0], publicData.count == 65 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
-        self.init(x: publicData[1...32], y: publicData[33...64], d: d)
+        self.init(x: publicData[1...32], y: publicData[33...64], d: d, curve: curve)
     }
     
     // PKCS#8 https://www.ietf.org/rfc/rfc5208.txt
@@ -113,8 +119,8 @@ public struct ECPrivateKey {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
         }
         guard case .sequence(let values) = elements[1], values.count == 2,
-              case .objectID(let oidData) = values[1], let oid = OID(data: oidData),
-                oid.isEllipticCurve else {
+              case .objectID(let oidData) = values[1], let oid = OID.decodeOID(data: oidData),
+        let curve = ECCurve(oid: oid) else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
         }
         guard case .octetString(let keyAsnData) = elements[2] else {
@@ -138,8 +144,9 @@ public struct ECPrivateKey {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
         
-        publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64])
+        publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64], curve: curve)
         self.d = d
+        self.curve = curve
     }
 
     public init(pem: String) throws {
@@ -172,7 +179,7 @@ public struct ECPrivateKey {
         return ASN1.sequence([
             .integer(data: Data([0x01])),
             .octetString(data: d),
-            .contextSpecific(tag: 0xa0, [.objectID(data: OID.prime256v1.data!)]),
+            .contextSpecific(tag: 0xa0, [.objectID(data: OID.encodeOID(oid: curve.oid)!)]),
             .contextSpecific(tag: 0xa1, [.bitString(data: publicKeyData)])
         ]).data
     }

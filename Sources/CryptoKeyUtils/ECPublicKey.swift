@@ -12,40 +12,46 @@ import SwiftExtensions
  Works only with P-256/secp256r1
  */
 public enum ECPublicKeyFormat {
-    case hexString(x: String, y: String)
-    case jwk(x: String, y: String)
+    case hexString(x: String, y: String, curve: ECCurve)
+    case jwk(x: String, y: String, crv: String)
 }
 
 public enum ECPublicKeyError: Error {
     case invalidDerStructure(reason: String)
     case invalidPemStructure(reason: String)
+    case unsupportedCurve
 }
 
 public struct ECPublicKey {
     public let x: Data
     public let y: Data
+    public let curve: ECCurve
 
     static let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
     static let pemFooter = "\n-----END PUBLIC KEY-----"
     
-    public init(x: Data, y: Data) {
+    public init(x: Data, y: Data, curve: ECCurve) {
         self.x = x
         self.y = y
+        self.curve = curve
     }
     
-    public init(x: [UInt8], y: [UInt8]) {
+    public init(x: [UInt8], y: [UInt8], curve: ECCurve) {
         self.x = Data(x)
         self.y = Data(y)
+        self.curve = curve
     }
     
     public init(_ format: ECPublicKeyFormat) throws {
         switch format {
-        case .hexString(let x, let y):
+        case .hexString(let x, let y, let curve):
             self.x = Data(hexString: x)
             self.y = Data(hexString: y)
-        case .jwk(let x, let y):
+            self.curve = curve
+        case .jwk(let x, let y, let crv):
             self.x = try Base64Decoder.data(base64: x)
             self.y = try Base64Decoder.data(base64: y)
+            self.curve = try ECCurve(jwk: crv) ?! ECPublicKeyError.unsupportedCurve
         }
     }
     
@@ -70,7 +76,7 @@ public struct ECPublicKey {
         guard decodedOIDs.contains(.ecPublicKey) else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Missing \(OID.ecPublicKey.rawValue) in OBJECTID")
         }
-        guard let curveType = (decodedOIDs.first { $0.isEllipticCurve }) else {
+        guard let curveType = (oidStrings.compactMap { ECCurve(oid: $0) }.first) else {
             let unknownOIDs = oidStrings.filter { OID(rawValue: $0).isNil }.joined(separator: ", ")
             throw ECPublicKeyError.invalidDerStructure(reason: "Missing or not supported elliptic curve type OID in OBJECTID (\(unknownOIDs)")
         }
@@ -79,6 +85,7 @@ public struct ECPublicKey {
         }
         x = Data(numbers[1...32])
         y = Data(numbers[33...64])
+        self.curve = curveType
     }
     
     public init(pem: String) throws {
@@ -100,7 +107,7 @@ public struct ECPublicKey {
         return ASN1.sequence([
             .sequence([
                 .objectID(data: OID.ecPublicKey.data!),
-                .objectID(data: OID.prime256v1.data!)
+                .objectID(data: OID.encodeOID(oid: curve.oid)!)
             ]),
             .bitString(data: keyData)
         ]).data

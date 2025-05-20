@@ -14,7 +14,7 @@ struct ECPublicKeyTests {
     @Test func verifyPublicPem() throws {
         let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
         let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-        let key = try ECPublicKey(.hexString(x: x, y: y))
+        let key = try ECPublicKey(.hexString(x: x, y: y, curve: .secp256r1))
 
         let publicPEM = key.pem
         print(publicPEM)
@@ -25,7 +25,7 @@ struct ECPublicKeyTests {
     @Test func verifyPublicDER() throws {
         let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
         let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-        let key = try ECPublicKey(.hexString(x: x, y: y))
+        let key = try ECPublicKey(.hexString(x: x, y: y, curve: .secp256r1))
 
         let expectedBinary = "3059301306072A8648CE3D020106082A8648CE3D03010703420004405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
         #expect(key.der.hexString == expectedBinary)
@@ -37,7 +37,7 @@ struct ECPublicKeyTests {
     @Test func keyFromJWK() throws {
         let x = "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74"
         let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
-        let key = try ECPublicKey(.jwk(x: x, y: y))
+        let key = try ECPublicKey(.jwk(x: x, y: y, crv: "P-256"))
 
         let publicPEM = key.pem
         print(publicPEM)

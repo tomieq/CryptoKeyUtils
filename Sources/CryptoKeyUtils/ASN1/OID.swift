@@ -11,9 +11,6 @@ import SwiftExtensions
 public enum OID: String {
     case ecPublicKey = "1.2.840.10045.2.1"
     case ecdsaWithSHA256 = "1.2.840.10045.4.3.2"
-    /// AlgorithmIdentifier - elliptic curves
-    case prime256v1 = "1.2.840.10045.3.1.7"
-    case secp256k1 = "1.3.132.0.10"
 
     public init?(data: Data) {
         if let decodedOID = OID.decodeOID(data: data), let oid = OID(rawValue: decodedOID) {
@@ -21,10 +18,6 @@ public enum OID: String {
         } else {
             return nil
         }
-    }
-    
-    var isEllipticCurve: Bool {
-        [.prime256v1, .secp256k1].contains(self)
     }
     
     public var data: Data? {
