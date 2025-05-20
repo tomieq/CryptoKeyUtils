@@ -81,7 +81,7 @@ struct ECPrivateKeyTests {
 
         let der = "3077020101042053893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279AA00A06082A8648CE3D030107A14403420004405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
         
-        let key = try ECPrivateKey(der: Data(hexString: der), format: .sec1)
+        let key = try ECPrivateKey(der: Data(hexString: der))
         #expect(key.d.hexString == d)
         #expect(key.publicKey.x.hexString == x)
         #expect(key.publicKey.y.hexString == y)

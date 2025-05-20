@@ -20,6 +20,7 @@ public enum ECPrivateKeyError: Error {
     case invalidDerStructure(reason: String)
     case invalidPemStructure(reason: String)
     case unsupportedCurve
+    case unsupportedBinaryFormat
 }
 
 public struct ECPrivateKey {
@@ -52,14 +53,33 @@ public struct ECPrivateKey {
         }
         
     }
-
-    public init(der: Data, format: ECFormat) throws {
+    
+    public init(der: Data) throws {
+        let asn1 = try ASN1(data: der)
+        guard let format = Self.guessFormat(asn1: asn1) else {
+            throw ECPrivateKeyError.unsupportedBinaryFormat
+        }
+        print("Detected private key DER format: \(format)")
         switch format {
         case .sec1:
-            try self.init(sec1: der)
+            try self.init(sec1: asn1)
         case .pkcs8:
-            try self.init(pkcs8: der)
+            try self.init(pkcs8: asn1)
         }
+    }
+    
+    static func guessFormat(asn1: ASN1) -> ECFormat? {
+        guard case .sequence(let elements) = asn1 else {
+            return nil
+        }
+        if (elements[safeRange: 0...4].map { $0.tag }) == [.integer, .octetString, .contextSpecific, .contextSpecific] {
+            return .sec1
+        }
+        if (elements[safeRange: 0...3].map { $0.tag }) == [.integer, .sequence, .octetString] {
+            return .pkcs8
+        }
+        print("Cannot detect DER format, unknown ASN1 sequence: \(elements.map { $0.tag }))")
+        return nil
     }
     
     // https://www.ietf.org/rfc/rfc5915.txt
@@ -71,8 +91,7 @@ public struct ECPrivateKey {
         publicKey  [1] BIT STRING OPTIONAL
      }
      */
-    init(sec1 der: Data) throws {
-        let asn1 = try ASN1(data: der)
+    init(sec1 asn1: ASN1) throws {
         
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
@@ -106,8 +125,7 @@ public struct ECPrivateKey {
        privateKey                PrivateKey,
        attributes           [0]  IMPLICIT Attributes OPTIONAL }
      */
-    init(pkcs8 der: Data) throws {
-        let asn1 = try ASN1(data: der)
+    init(pkcs8 asn1: ASN1) throws {
         
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
@@ -157,7 +175,7 @@ public struct ECPrivateKey {
                         return format
                     }
                 }
-                throw ECPublicKeyError.invalidPemStructure(reason: "Unknown PEM private key header ot footer")
+                throw ECPublicKeyError.invalidPemStructure(reason: "Unknown PEM private key header or footer")
             }
         }
         let pemFormat = try format
@@ -167,7 +185,7 @@ public struct ECPrivateKey {
             .replacingOccurrences(of: pemFormat.pemFooter, with: "")
             .replacingOccurrences(of: "\n", with: "")
         let der = try Base64Decoder.data(base64: rawPem)
-        try self.init(der: der, format: pemFormat)
+        try self.init(der: der)
     }
     
     public var der: Data {

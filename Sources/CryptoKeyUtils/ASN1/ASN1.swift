@@ -48,6 +48,26 @@ public enum ASN1: CustomStringConvertible {
         ASN1.printNode(self, level: 0)
     }
     
+    var tag: Tag {
+        switch self {
+        case .sequence(let array):
+                .sequence
+        case .contextSpecific(let tag, let array):
+                .contextSpecific
+        case .boolean(let data):
+                .boolean
+        case .integer(let data):
+                .integer
+        case .objectID(let data):
+                .objectID
+        case .null:
+                .null
+        case .bitString(let data):
+                .bitString
+        case .octetString(let data):
+                .octetString
+        }
+    }
     
     static func printNode(_ node: ASN1, level: Int) -> String {
         var str: [String] = []
