@@ -49,16 +49,14 @@ public struct ECPrivateKey {
         case .jwk(let x, let y, let d, let crv):
             self.publicKey = try ECPublicKey(.jwk(x: x, y: y, crv: crv))
             self.d = try Base64Decoder.data(base64: d)
-            self.curve = try ECCurve(jwk: crv) ?! ECPrivateKeyError.unsupportedCurve
+            self.curve = try ECCurve(jwk: crv).orThrow(ECPrivateKeyError.unsupportedCurve)
         }
         
     }
     
     public init(der: Data) throws {
         let asn1 = try ASN1(data: der)
-        guard let format = Self.guessFormat(asn1: asn1) else {
-            throw ECPrivateKeyError.unsupportedBinaryFormat
-        }
+        let format = try Self.guessFormat(asn1: asn1).orThrow(ECPrivateKeyError.unsupportedBinaryFormat)
         print("Detected private key DER format: \(format)")
         switch format {
         case .sec1:
@@ -181,9 +179,9 @@ public struct ECPrivateKey {
         let pemFormat = try format
         print("Detected PEM in format \(pemFormat)")
         let rawPem = pem
-            .replacingOccurrences(of: pemFormat.pemHeader, with: "")
-            .replacingOccurrences(of: pemFormat.pemFooter, with: "")
-            .replacingOccurrences(of: "\n", with: "")
+            .removed(text: pemFormat.pemHeader)
+            .removed(text: pemFormat.pemFooter)
+            .removed(text: "\n")
         let der = try Base64Decoder.data(base64: rawPem)
         try self.init(der: der)
     }

@@ -20,9 +20,6 @@ public struct Base64Decoder {
             base64.append("=")
         }
         
-        guard let data = Data(base64Encoded: base64) else {
-            throw Base64DataError.invalidBase64String
-        }
-        return data
+        return try Data(base64Encoded: base64).orThrow(Base64DataError.invalidBase64String)
     }
 }

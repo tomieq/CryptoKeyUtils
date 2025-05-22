@@ -8,9 +8,6 @@
 import Foundation
 import SwiftExtensions
 
-/*
- Works only with P-256/secp256r1
- */
 public enum ECPublicKeyFormat {
     case hexString(x: String, y: String, curve: ECCurve)
     case jwk(x: String, y: String, crv: String)
@@ -51,7 +48,7 @@ public struct ECPublicKey {
         case .jwk(let x, let y, let crv):
             self.x = try Base64Decoder.data(base64: x)
             self.y = try Base64Decoder.data(base64: y)
-            self.curve = try ECCurve(jwk: crv) ?! ECPublicKeyError.unsupportedCurve
+            self.curve = try ECCurve(jwk: crv).orThrow(ECPublicKeyError.unsupportedCurve)
         }
     }
     
@@ -93,9 +90,9 @@ public struct ECPublicKey {
             throw ECPublicKeyError.invalidPemStructure(reason: "Invalid header or footer")
         }
         let rawPem = pem
-            .replacingOccurrences(of: Self.pemHeader, with: "")
-            .replacingOccurrences(of: Self.pemFooter, with: "")
-            .replacingOccurrences(of: "\n", with: "")
+            .removed(text: Self.pemHeader)
+            .removed(text: Self.pemFooter)
+            .removed(text: "\n")
         try self.init(der: Base64Decoder.data(base64: rawPem))
     }
     
