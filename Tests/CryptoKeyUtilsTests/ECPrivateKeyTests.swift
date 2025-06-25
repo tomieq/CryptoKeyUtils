@@ -67,10 +67,9 @@ struct ECPrivateKeyTests {
         let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
         let key = try ECPrivateKey(.jwk(x: x, y: y, d: d, crv: "P-256"))
 
-        let publicPEM = key.publicKey.pem
-        print(publicPEM)
-        #expect(publicPEM.contains("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAESVqB4JcUD6lsfvqMr+OKUNUphdNn"))
-        #expect(publicPEM.contains("64Eay60978ZlL76V/S7SkyPiUYDNmLHm7gKbkIxAiAw2mTDLXrfC0phUog=="))
+        let publicDER = key.publicKey.der
+        let hex = "3059301306072A8648CE3D020106082A8648CE3D03010703420004495A81E097140FA96C7EFA8CAFE38A50D52985D367EB811ACBAD3DEFC6652FBE95FD2ED29323E25180CD98B1E6EE029B908C40880C369930CB5EB7C2D29854A2"
+        #expect(publicDER.hexString == hex)
     }
     
     @Test func keyFromDer() throws {
@@ -107,8 +106,8 @@ struct ECPrivateKeyTests {
         #expect(key.publicKey.x.hexString == "ACF272C44BB6FE8282AC969A4D54EBAB7F43289D9770DE96FA4F14BC67FE63F9")
         #expect(key.publicKey.y.hexString == "4358D6C58AD42871A6EC0D4BD237479D1C7DD428FE503D3CF870E97220F32B5D")
         #expect(key.curve == .secp256r1)
-        print("Raw: \n\(rawPem)")
-        print("Generated: \n\(key.pem(format: .pkcs8))")
-        #expect(key.pem(format: .pkcs8).filter { !$0.isWhitespace } == rawPem.filter { !$0.isWhitespace })
+        
+        let hex = "308187020100301306072A8648CE3D020106082A8648CE3D030107046D306B02010104204A93F9E442DD5ECC23F4945900F470B537D2E02351AA9288B3EDBCACD1E23C0AA14403420004ACF272C44BB6FE8282AC969A4D54EBAB7F43289D9770DE96FA4F14BC67FE63F94358D6C58AD42871A6EC0D4BD237479D1C7DD428FE503D3CF870E97220F32B5D"
+        #expect(key.der(format: .pkcs8).hexString == hex)
     }
 }

@@ -39,10 +39,9 @@ struct ECPublicKeyTests {
         let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
         let key = try ECPublicKey(.jwk(x: x, y: y, crv: "P-256"))
 
-        let publicPEM = key.pem
-        print(publicPEM)
-        #expect(publicPEM.contains("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAESVqB4JcUD6lsfvqMr+OKUNUphdNn"))
-        #expect(publicPEM.contains("64Eay60978ZlL76V/S7SkyPiUYDNmLHm7gKbkIxAiAw2mTDLXrfC0phUog=="))
+        let publicDER = key.der
+        let hex = "3059301306072A8648CE3D020106082A8648CE3D03010703420004495A81E097140FA96C7EFA8CAFE38A50D52985D367EB811ACBAD3DEFC6652FBE95FD2ED29323E25180CD98B1E6EE029B908C40880C369930CB5EB7C2D29854A2"
+        #expect(publicDER.hexString == hex)
     }
     
     @Test func keyFromDER() throws {
