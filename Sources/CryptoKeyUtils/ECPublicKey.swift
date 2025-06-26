@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftExtensions
+import SwiftyTLV
 
 public enum ECPublicKeyFormat {
     case hexString(x: String, y: String, curve: ECCurve)
@@ -60,28 +61,27 @@ public struct ECPublicKey {
         guard elements.count == 2 else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 2 elements")
         }
-        guard case .sequence(let oids) = elements[0] else {
+        guard case .sequence(let oidList) = elements[safeIndex: 0] else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain SEQUENCE with OBJECTID at index 0")
         }
-        let oidStrings = try oids.compactMap { asn1 in
-            guard case .objectID(let data) = asn1 else {
-                throw ECPublicKeyError.invalidDerStructure(reason: "Expected OBJECTID in SEQUENCE")
-            }
-            return OID.decodeOID(data: data)
+        guard case .objectIdentifier(let keyTypeOID) = oidList[safeIndex: 0], let keyType = CryptoOID(rawValue: keyTypeOID) else {
+            throw ECPublicKeyError.invalidDerStructure(reason: "Expected OBJECTID with key type in SEQUENCE")
         }
-        let decodedOIDs = oidStrings.compactMap { OID(rawValue: $0) }
-        guard decodedOIDs.contains(.ecPublicKey) else {
-            throw ECPublicKeyError.invalidDerStructure(reason: "Missing \(OID.ecPublicKey.rawValue) in OBJECTID")
+        guard keyType == .ecPublicKey else {
+            throw ECPublicKeyError.invalidDerStructure(reason: "Currently only EC keys are supported, but found \(keyTypeOID)")
         }
-        guard let curveType = (oidStrings.compactMap { ECCurve(oid: $0) }.first) else {
-            let unknownOIDs = oidStrings.filter { OID(rawValue: $0).isNil }.joined(separator: ", ")
-            throw ECPublicKeyError.invalidDerStructure(reason: "Missing or not supported elliptic curve type OID in OBJECTID (\(unknownOIDs)")
+
+        guard case .objectIdentifier(let curveTypeOID) = oidList[safeIndex: 1], let curveType = ECCurve(rawValue: curveTypeOID) else {
+            throw ECPublicKeyError.invalidDerStructure(reason: "Expected OBJECTID with curve type in SEQUENCE")
         }
-        guard case .bitString(let numbers) = elements[1], numbers.count == 65, numbers[0] == 0x04 else {
+        guard case .bitString(var numbers) = elements[safeIndex: 1], numbers.count == 66 else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected BITSTRING with x and y values")
         }
-        x = Data(numbers[1...32])
-        y = Data(numbers[33...64])
+        guard try numbers.consume(bytes: 2).uInt16 == 0x04 else {
+            throw ECPublicKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
+        }
+        x = Data(numbers.consume(bytes: 32))
+        y = Data(numbers.consume(bytes: 32))
         self.curve = curveType
     }
     
@@ -97,21 +97,25 @@ public struct ECPublicKey {
     }
     
     public var der: Data {
-        var keyData = Data([0x04])
-        keyData.append(x)
-        keyData.append(y)
-
-        return ASN1.sequence([
-            .sequence([
-                .objectID(data: OID.ecPublicKey.data!),
-                .objectID(data: OID.encodeOID(oid: curve.oid)!)
-            ]),
-            .bitString(data: keyData)
-        ]).data
+        get throws {
+            var keyData = UInt16(4).data
+            keyData.append(x)
+            keyData.append(y)
+            print(keyData.hexString)
+            return try ASN1.sequence([
+                .sequence([
+                    .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
+                    .objectIdentifier(curve.rawValue)
+                ]),
+                .bitString(keyData)
+            ]).data
+        }
     }
     
     public var pem: String {
-        let base64Key = der.base64EncodedString(options: .lineLength64Characters)
-        return Self.pemHeader + base64Key + Self.pemFooter
+        get throws {
+            let base64Key = try der.base64EncodedString(options: .lineLength64Characters)
+            return Self.pemHeader + base64Key + Self.pemFooter
+        }
     }
 }

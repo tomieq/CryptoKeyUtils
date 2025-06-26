@@ -5,6 +5,7 @@
 //  Created by Tomasz on 24/03/2025.
 //
 import Foundation
+import SwiftyTLV
 
 public enum SignatureFormat {
     case hexString(r: String, s: String)
@@ -37,9 +38,11 @@ public struct Signature {
     }
     
     public var der: Data {
-        ASN1.sequence([
-            .integer(data: ASN1.EncodeInteger(data: r)),
-            .integer(data: ASN1.EncodeInteger(data: s))
-        ]).data
+        get throws {
+            try ASN1.sequence([
+                .integerRaw(r.encodedInteger),
+                .integerRaw(s.encodedInteger)
+            ]).data
+        }
     }
 }

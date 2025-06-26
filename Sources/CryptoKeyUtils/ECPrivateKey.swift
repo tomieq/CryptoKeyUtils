@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftExtensions
+import SwiftyTLV
 
 /*
  Works only with P-256/secp256r1
@@ -70,13 +71,15 @@ public struct ECPrivateKey {
         guard case .sequence(let elements) = asn1 else {
             return nil
         }
-        if (elements[safeRange: 0...4].map { $0.tag }) == [.integer, .octetString, .contextSpecific, .contextSpecific] {
+        if case .integer = elements[safeIndex: 0], case .octetString = elements[safeIndex: 1],
+            case .contextSpecificConstructed(tag: 0, _) = elements[safeIndex: 2], case .contextSpecificConstructed(tag: 1, _) = elements[safeIndex: 3]  {
             return .sec1
         }
-        if (elements[safeRange: 0...3].map { $0.tag }) == [.integer, .sequence, .octetString] {
+        if case .integer = elements[safeIndex: 0], case .sequence = elements[safeIndex: 1],
+           case .octetString = elements[safeIndex: 2] {
             return .pkcs8
         }
-        print("Cannot detect DER format, unknown ASN1 sequence: \(elements.map { $0.tag }))")
+        print("Cannot detect DER format, unknown ASN1 sequence: \(asn1))")
         return nil
     }
     
@@ -94,25 +97,24 @@ public struct ECPrivateKey {
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
-        guard elements.count == 4 else {
-            throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 4 elements")
-        }
-        guard case .integer(let version) = elements[0], version.integer == 0x01 else {
+        guard case .integer(let version) = elements[safeIndex: 0], version == 0x01 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
         }
-        guard case .octetString(let d) = elements[1] else {
+        guard case .octetString(let d) = elements[safeIndex: 1] else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing private key d")
         }
-        guard case .contextSpecific(_, let values) = elements[2], values.count == 1,
-              case .objectID(let oidData) = values[0], let oid = OID.decodeOID(data: oidData),
-        let curve = ECCurve(oid: oid) else {
-            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing invalid OID for AlgorithmIdentifier")
+        guard case .contextSpecificConstructed(tag: 0, let values) = elements[safeIndex: 2],
+              case .objectIdentifier(let oid) = values[safeIndex: 0], let curve = ECCurve(rawValue: oid) else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
         }
-        guard case .contextSpecific(_, let values) = elements[3], values.count == 1,
-              case .bitString(let publicData) = values[0], publicData.count == 65 else {
+        guard case .contextSpecificConstructed(tag: 1, let values) = elements[safeIndex: 3],
+              case .bitString(var publicData) = values[safeIndex: 0], publicData.count == 66 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
-        self.init(x: publicData[1...32], y: publicData[33...64], d: d, curve: curve)
+        guard try publicData.consume(bytes: 2).uInt16 == 0x04 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
+        }
+        self.init(x: publicData.consume(bytes: 32), y: publicData.consume(bytes: 32), d: d, curve: curve)
     }
     
     // PKCS#8 https://www.ietf.org/rfc/rfc5208.txt
@@ -125,21 +127,21 @@ public struct ECPrivateKey {
      */
     init(pkcs8 asn1: ASN1) throws {
         
-        guard case .sequence(let elements) = asn1 else {
+        guard case .sequence(let sequenceElems) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
-        guard elements.count > 2 else {
+        guard sequenceElems.count > 2 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain at least 3 elements")
         }
-        guard case .integer(let version) = elements[0], version.integer == 0x00 else {
+        guard case .integer(let version) = sequenceElems[safeIndex: 0], version == 0x00 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
         }
-        guard case .sequence(let values) = elements[1], values.count == 2,
-              case .objectID(let oidData) = values[1], let oid = OID.decodeOID(data: oidData),
-        let curve = ECCurve(oid: oid) else {
+        
+        guard case .sequence(let values) = sequenceElems[safeIndex: 1],
+              case .objectIdentifier(let oid) = values[safeIndex: 1], let curve = ECCurve(rawValue: oid) else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
         }
-        guard case .octetString(let keyAsnData) = elements[2] else {
+        guard case .octetString(let keyAsnData) = sequenceElems[safeIndex: 2] else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing Key data")
         }
         let keyAsn = try ASN1(data: keyAsnData)
@@ -149,18 +151,20 @@ public struct ECPrivateKey {
         guard elements.count == 3 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Key SEQUENCE should contain 3 elements")
         }
-        guard case .integer(let version) = elements[0], version.integer == 0x01 else {
+        guard case .integer(let version) = elements[safeIndex: 0], version == 0x01 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Key Version")
         }
-        guard case .octetString(let d) = elements[1] else {
+        guard case .octetString(let d) = elements[safeIndex: 1] else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing private key d")
         }
-        guard case .contextSpecific(_, let values) = elements[2], values.count == 1,
-              case .bitString(let publicData) = values[0], publicData.count == 65 else {
+        guard case .contextSpecificConstructed(_, let values) = elements[safeIndex: 2],
+              case .bitString(var publicData) = values[safeIndex: 0], publicData.count == 66 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
-        
-        publicKey = ECPublicKey(x: publicData[1...32], y: publicData[33...64], curve: curve)
+        guard try publicData.consume(bytes: 2).uInt16 == 0x04 else {
+            throw ECPrivateKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
+        }
+        publicKey = ECPublicKey(x: publicData.consume(bytes: 32), y: publicData.consume(bytes: 32), curve: curve)
         self.d = d
         self.curve = curve
     }
@@ -186,52 +190,56 @@ public struct ECPrivateKey {
         try self.init(der: der)
     }
     
-    public func der(format: ECBinaryFormat) -> Data {
+    public func der(format: ECBinaryFormat) throws -> Data {
         switch format {
         case .sec1:
-            sec1Der
+            try sec1Der
         case .pkcs8:
-            pkcs8Der
+            try pkcs8Der
         }
     }
     
     var sec1Der: Data {
-        // 0x04 means that x and y are concatenated
-        var publicKeyData = Data([0x04])
-        publicKeyData.append(publicKey.x)
-        publicKeyData.append(publicKey.y)
-    
-        return ASN1.sequence([
-            .integer(data: Data([0x01])),
-            .octetString(data: d),
-            .contextSpecific(tag: 0xa0, [.objectID(data: OID.encodeOID(oid: curve.oid)!)]),
-            .contextSpecific(tag: 0xa1, [.bitString(data: publicKeyData)])
-        ]).data
+        get throws {
+            // 0x04 means that x and y are concatenated
+            var publicKeyData = UInt16(4).data
+            publicKeyData.append(publicKey.x)
+            publicKeyData.append(publicKey.y)
+            
+            return try ASN1.sequence([
+                .integer(1),
+                .octetString(d),
+                .contextSpecificConstructed(tag: 0, [.objectIdentifier(curve.rawValue)]),
+                .contextSpecificConstructed(tag: 1, [.bitString(publicKeyData)])
+            ]).data
+        }
     }
     
     var pkcs8Der: Data {
-        // 0x04 means that x and y are concatenated
-        var publicKeyData = Data([0x04])
-        publicKeyData.append(publicKey.x)
-        publicKeyData.append(publicKey.y)
-        
-        let privateKey = ASN1.sequence([
-            .integer(data: Data([0x01])),
-            .octetString(data: d),
-            .contextSpecific(tag: 0xa1, [.bitString(data: publicKeyData)])
-        ]).data
-        return ASN1.sequence([
-            .integer(data: Data([0x00])),
-            .sequence([
-                .objectID(data: OID.ecPublicKey.data!),
-                .objectID(data: OID.encodeOID(oid: curve.oid)!)
-            ]),
-            .octetString(data: privateKey)
-        ]).data
+        get throws {
+            // 0x04 means that x and y are concatenated
+            var publicKeyData = UInt16(4).data
+            publicKeyData.append(publicKey.x)
+            publicKeyData.append(publicKey.y)
+            
+            let privateKey = try ASN1.sequence([
+                .integer(1),
+                .octetString(d),
+                .contextSpecificConstructed(tag: 1, [.bitString(publicKeyData)])
+            ]).data
+            return try ASN1.sequence([
+                .integer(0),
+                .sequence([
+                    .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
+                    .objectIdentifier(curve.rawValue)
+                ]),
+                .octetString(privateKey)
+            ]).data
+        }
     }
     
-    public func pem(format: ECBinaryFormat) -> String {
-        let base64Key = der(format: format).base64EncodedString(options: .lineLength64Characters)
+    public func pem(format: ECBinaryFormat) throws -> String {
+        let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
         return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }
 }

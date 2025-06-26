@@ -12,7 +12,8 @@ let package = Package(
             targets: ["CryptoKeyUtils"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/tomieq/SwiftExtensions", branch: "master")
+        .package(url: "https://github.com/tomieq/SwiftExtensions", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/tomieq/SwiftyTLV", .upToNextMajor(from: "1.0.0"))
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -20,7 +21,8 @@ let package = Package(
         .target(
             name: "CryptoKeyUtils",
             dependencies: [
-                .product(name: "SwiftExtensions", package: "SwiftExtensions")
+                .product(name: "SwiftExtensions", package: "SwiftExtensions"),
+                .product(name: "SwiftyTLV", package: "SwiftyTLV")
             ]),
         .testTarget(
             name: "CryptoKeyUtilsTests",
