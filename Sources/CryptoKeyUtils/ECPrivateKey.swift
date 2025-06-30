@@ -97,7 +97,7 @@ public struct ECPrivateKey {
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
-        guard case .integer(let version) = elements[safeIndex: 0], version == 0x01 else {
+        guard case .integer(let version) = elements[safeIndex: 0], version == 0x01.data else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
         }
         guard case .octetString(let d) = elements[safeIndex: 1] else {
@@ -133,7 +133,7 @@ public struct ECPrivateKey {
         guard sequenceElems.count > 2 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain at least 3 elements")
         }
-        guard case .integer(let version) = sequenceElems[safeIndex: 0], version == 0x00 else {
+        guard case .integer(let version) = sequenceElems[safeIndex: 0], version == 0x00.data else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
         }
         
@@ -141,17 +141,16 @@ public struct ECPrivateKey {
               case .objectIdentifier(let oid) = values[safeIndex: 1], let curve = ECCurve(rawValue: oid) else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
         }
-        guard case .octetString(let keyAsnData) = sequenceElems[safeIndex: 2] else {
+        guard case .octetString(let keyAsn) = sequenceElems[safeIndex: 2] else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing Key data")
         }
-        let keyAsn = try ASN1(data: keyAsnData)
-        guard case .sequence(let elements) = keyAsn else {
+        guard case .sequence(let elements) = try keyAsn.asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected Key SEQUENCE")
         }
         guard elements.count == 3 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Key SEQUENCE should contain 3 elements")
         }
-        guard case .integer(let version) = elements[safeIndex: 0], version == 0x01 else {
+        guard case .integer(let version) = elements[safeIndex: 0], version == 0x01.data else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Key Version")
         }
         guard case .octetString(let d) = elements[safeIndex: 1] else {
@@ -207,7 +206,7 @@ public struct ECPrivateKey {
             publicKeyData.append(publicKey.y)
             
             return try ASN1.sequence([
-                .integer(1),
+                .integer(1.data),
                 .octetString(d),
                 .contextSpecificConstructed(tag: 0, [.objectIdentifier(curve.rawValue)]),
                 .contextSpecificConstructed(tag: 1, [.bitString(publicKeyData)])
@@ -223,12 +222,12 @@ public struct ECPrivateKey {
             publicKeyData.append(publicKey.y)
             
             let privateKey = try ASN1.sequence([
-                .integer(1),
+                .integer(1.data),
                 .octetString(d),
                 .contextSpecificConstructed(tag: 1, [.bitString(publicKeyData)])
             ]).data
             return try ASN1.sequence([
-                .integer(0),
+                .integer(0.data),
                 .sequence([
                     .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
                     .objectIdentifier(curve.rawValue)

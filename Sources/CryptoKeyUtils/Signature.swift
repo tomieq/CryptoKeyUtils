@@ -40,8 +40,8 @@ public struct Signature {
     public var der: Data {
         get throws {
             try ASN1.sequence([
-                .integerRaw(r.encodedInteger),
-                .integerRaw(s.encodedInteger)
+                .integer(r.encodedInteger),
+                .integer(s.encodedInteger)
             ]).data
         }
     }

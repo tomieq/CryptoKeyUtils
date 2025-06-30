@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tomieq/SwiftExtensions",
       "state" : {
-        "revision" : "261cc64e03c44cb1a1b6c2fa95dcf4820f3778ff",
-        "version" : "1.0.0"
+        "revision" : "b4038160c6d7df2766f32c976a504ab57031a887",
+        "version" : "1.1.0"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tomieq/SwiftyTLV",
       "state" : {
-        "revision" : "515fd3adeaa8e3e89315210714b10574913c4e9e",
-        "version" : "1.0.0"
+        "revision" : "ef536c0077a4c0fa4db091f03aeeb090a7168068",
+        "version" : "1.0.2"
       }
     }
   ],
