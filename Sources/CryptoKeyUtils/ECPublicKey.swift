@@ -101,7 +101,6 @@ public struct ECPublicKey {
             var keyData = UInt16(4).data
             keyData.append(x)
             keyData.append(y)
-            print(keyData.hexString)
             return try ASN1.sequence([
                 .sequence([
                     .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
