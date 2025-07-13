@@ -98,16 +98,22 @@ public struct ECPublicKey {
     
     public var der: Data {
         get throws {
+            try asn1.data
+        }
+    }
+    
+    public var asn1: ASN1 {
+        get throws {
             var keyData = UInt16(4).data
             keyData.append(x)
             keyData.append(y)
-            return try ASN1.sequence([
+            return ASN1.sequence([
                 .sequence([
                     .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
                     .objectIdentifier(curve.rawValue)
                 ]),
                 .bitString(keyData)
-            ]).data
+            ])
         }
     }
     
