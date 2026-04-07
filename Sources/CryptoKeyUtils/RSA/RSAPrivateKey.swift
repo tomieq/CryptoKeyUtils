@@ -106,6 +106,48 @@ public struct RSAPrivateKey {
     }
 }
 
+extension RSAPrivateKey {
+    
+    public func der(format: RSAPrivateKeyFormat) throws -> Data {
+        switch format {
+        case .pkcs1:
+            try pkcs1der
+        case .pkcs8:
+            fatalError()
+        }
+    }
+    
+    public func pem(format: RSAPrivateKeyFormat) throws -> String {
+        let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
+        return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
+    }
+}
+
+// PKCS#1
+extension RSAPrivateKey {
+    public var pkcs1der: Data {
+        get throws {
+            try pkcs1asn1.data
+        }
+    }
+    
+    public var pkcs1asn1: ASN1 {
+        get throws {
+            return ASN1.sequence([
+                .integer(UInt8(0).data),
+                .integer(publicKey.n),
+                .integer(publicKey.e),
+                .integer(d),
+                .integer(p),
+                .integer(q),
+                .integer(exponent1),
+                .integer(exponent2),
+                .integer(coefficient)
+            ])
+        }
+    }
+}
+
 extension RSAPrivateKey: CustomStringConvertible {
     public var description: String {
         "RSAPrivateKey {\n\tn: \(publicKey.n.hexString)\n\te: \(publicKey.e.hexString)\n\td: \(d.hexString)\n\tp: \(p.hexString)\n\tq: \(q.hexString)\n\texponent1: \(exponent1.hexString)\n\texponent2: \(exponent2.hexString)\n\tcoefficient: \(coefficient.hexString)\n}"

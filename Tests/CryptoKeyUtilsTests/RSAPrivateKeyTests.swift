@@ -11,7 +11,7 @@ import CryptoKeyUtils
 struct RSAPrivateKeyTests {
     @Test
     func pkcs1Pem() throws {
-        let pem = """
+        let pemString = """
             -----BEGIN RSA PRIVATE KEY-----
             MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu
             KUpRKfFLfRYC9AIKjbJTWit+CqvjWYzvQwECAwEAAQJAIJLixBy2qpFoS4DSmoEm
@@ -23,9 +23,16 @@ struct RSAPrivateKeyTests {
             -----END RSA PRIVATE KEY-----
             """
         
-        let key = try RSAPrivateKey(pem: pem)
+        let key = try RSAPrivateKey(pem: pemString)
         print(key)
-        
+        let constructedPem = try key.pem(format: .pkcs1)
+        #expect(constructedPem.unifiedNewlines == pemString.unifiedNewlines)
     }
 }
 
+fileprivate extension String {
+    var unifiedNewlines: String {
+        replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+    }
+}
