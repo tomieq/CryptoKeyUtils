@@ -19,7 +19,7 @@ public struct RSAPublicKey {
     public let n: Data // modulus
     public let e: Data // publicExponent
     
-    private let oid = "1.2.840.113549.1.1.1"
+    private static let oid = "1.2.840.113549.1.1.1"
     
     public init (n: Data, e: Data) {
         self.n = n
@@ -126,8 +126,8 @@ public struct RSAPublicKey {
               case .objectIdentifier(let oid) = values[safeIndex: 0] else {
             throw RSAPublicKeyError.invalidDerStructure(reason: "Missing OID for AlgorithmIdentifier")
         }
-        guard oid == self.oid else {
-            throw RSAPublicKeyError.invalidDerStructure(reason: "Invalid OID for AlgorithmIdentifier. Expected \(self.oid), got \(oid)")
+        guard oid == Self.oid else {
+            throw RSAPublicKeyError.invalidDerStructure(reason: "Invalid OID for AlgorithmIdentifier. Expected \(Self.oid), got \(oid)")
         }
         guard case .bitString(var publicKeyData) = elements[safeIndex: 1] else {
             throw RSAPublicKeyError.invalidDerStructure(reason: "Missing bitstring with public key")
@@ -138,18 +138,7 @@ public struct RSAPublicKey {
         guard let publicKey = try? ASN1(data: publicKeyData) else {
             throw RSAPublicKeyError.invalidDerStructure(reason: "Invalid ASN1 data in bitstring \(asn1)")
         }
-        guard case .sequence(let publicKeyElements) = publicKey else {
-            throw RSAPublicKeyError.invalidDerStructure(reason: "Expected SEQUENCE in bitstring")
-        }
-        guard case .integer(let modulus) = publicKeyElements[safeIndex: 0] else {
-            throw RSAPublicKeyError.invalidDerStructure(reason: "Missing modulus")
-        }
-        
-        guard case .integer(let publicExponent) = publicKeyElements[safeIndex: 1] else {
-            throw RSAPublicKeyError.invalidDerStructure(reason: "Missing publicExponent")
-        }
-        self.n = modulus
-        self.e = publicExponent
+        try self.init(pkcs1: publicKey)
     }
 }
 
@@ -202,7 +191,7 @@ extension RSAPublicKey {
             publicKeyData.append(try self.pkcs1der)
             return ASN1.sequence([
                 .sequence([
-                    .objectIdentifier(oid),
+                    .objectIdentifier(Self.oid),
                     .null
                 ]),
                 .bitString(publicKeyData)
