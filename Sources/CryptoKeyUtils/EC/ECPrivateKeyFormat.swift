@@ -1,16 +1,16 @@
 //
-//  ECKeyFormat.swift
+//  ECPrivateKeyFormat.swift
 //  CryptoKeyUtils
 //
 //  Created by Tomasz on 20/05/2025.
 //
 
-public enum ECKeyFormat: String, CaseIterable {
+public enum ECPrivateKeyFormat: String, CaseIterable {
     case sec1
     case pkcs8
 }
 
-extension ECKeyFormat {
+extension ECPrivateKeyFormat {
     var pemHeader: String {
         switch self {
         case .sec1:

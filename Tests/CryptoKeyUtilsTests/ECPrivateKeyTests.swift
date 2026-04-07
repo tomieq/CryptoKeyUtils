@@ -18,7 +18,7 @@ struct ECPrivateKeyTests {
         let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
         let key = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
 
-        let publicPEM = try key.publicKey.pem
+        let publicPEM = try key.publicKey.pem(format: .pkcs8)
         print(publicPEM)
         #expect(publicPEM.contains("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQFlk7Nn7MULhf/yadlMA9QAFdhIH"))
         #expect(publicPEM.contains("J14nqY9VS7eOkEsuTSfG26BCvTHFMmBJ8kGYpmchPr9h+jGRjp3VNda/ew=="))
@@ -31,7 +31,7 @@ struct ECPrivateKeyTests {
         let key = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
 
         let expectedBinary = "3059301306072A8648CE3D020106082A8648CE3D03010703420004405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-        #expect(try key.publicKey.der.hexString == expectedBinary)
+        #expect(try key.publicKey.der(format: .pkcs8).hexString == expectedBinary)
     }
 
     @Test func verifyPrivatePem() throws {
@@ -64,7 +64,7 @@ struct ECPrivateKeyTests {
         let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
         let key = try ECPrivateKey(.jwk(x: x, y: y, d: d, crv: "P-256"))
 
-        let publicDER = try key.publicKey.der
+        let publicDER = try key.publicKey.der(format: .pkcs8)
         let hex = "3059301306072A8648CE3D020106082A8648CE3D03010703420004495A81E097140FA96C7EFA8CAFE38A50D52985D367EB811ACBAD3DEFC6652FBE95FD2ED29323E25180CD98B1E6EE029B908C40880C369930CB5EB7C2D29854A2"
         #expect(publicDER.hexString == hex)
     }

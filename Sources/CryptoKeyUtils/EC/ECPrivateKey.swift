@@ -9,10 +9,8 @@ import Foundation
 import SwiftExtensions
 import SwiftyTLV
 
-/*
- Works only with P-256/secp256r1
- */
-public enum ECPrivateKeyFormat {
+
+public enum ECPrivateKeyInfo {
     case hexString(x: String, y: String, d: String, curve: ECCurve)
     case jwk(x: String, y: String, d: String, crv: String)
 }
@@ -41,8 +39,8 @@ public struct ECPrivateKey {
         self.curve = curve
     }
     
-    public init(_ format: ECPrivateKeyFormat) throws {
-        switch format {
+    public init(_ info: ECPrivateKeyInfo) throws {
+        switch info {
         case .hexString(let x, let y, let d, let curve):
             self.publicKey = try ECPublicKey(.hexString(x: x, y: y, curve: curve))
             self.d = Data(hexString: d)
@@ -67,7 +65,7 @@ public struct ECPrivateKey {
         }
     }
     
-    static func guessFormat(asn1: ASN1) -> ECKeyFormat? {
+    static func guessFormat(asn1: ASN1) -> ECPrivateKeyFormat? {
         guard case .sequence(let elements) = asn1 else {
             return nil
         }
@@ -169,9 +167,9 @@ public struct ECPrivateKey {
     }
     
     public init(pem: String) throws {
-        var format: ECKeyFormat {
+        var format: ECPrivateKeyFormat {
             get throws {
-                for format in ECKeyFormat.allCases {
+                for format in ECPrivateKeyFormat.allCases {
                     if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
                         return format
                     }
@@ -196,7 +194,7 @@ public struct ECPrivateKey {
 }
 
 extension ECPrivateKey {
-    public func der(format: ECKeyFormat) throws -> Data {
+    public func der(format: ECPrivateKeyFormat) throws -> Data {
         switch format {
         case .sec1:
             try sec1Der
@@ -205,7 +203,7 @@ extension ECPrivateKey {
         }
     }
     
-    public func pem(format: ECKeyFormat) throws -> String {
+    public func pem(format: ECPrivateKeyFormat) throws -> String {
         let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
         return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }

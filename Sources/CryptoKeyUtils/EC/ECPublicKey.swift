@@ -9,7 +9,7 @@ import Foundation
 import SwiftExtensions
 import SwiftyTLV
 
-public enum ECPublicKeyFormat {
+public enum ECPublicKeyInfo {
     case hexString(x: String, y: String, curve: ECCurve)
     case jwk(x: String, y: String, crv: String)
 }
@@ -24,7 +24,7 @@ public struct ECPublicKey {
     public let x: Data
     public let y: Data
     public let curve: ECCurve
-
+    
     static let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
     static let pemFooter = "\n-----END PUBLIC KEY-----"
     
@@ -40,8 +40,8 @@ public struct ECPublicKey {
         self.curve = curve
     }
     
-    public init(_ format: ECPublicKeyFormat) throws {
-        switch format {
+    public init(_ info: ECPublicKeyInfo) throws {
+        switch info {
         case .hexString(let x, let y, let curve):
             self.x = Data(hexString: x)
             self.y = Data(hexString: y)
@@ -54,12 +54,56 @@ public struct ECPublicKey {
     }
     
     public init(der: Data) throws {
-        let asn1 = try ASN1(data: der)
+        let asn1 = try der.asn1
+        let format = try Self.guessFormat(asn1: asn1).orThrow(RSAPublicKeyError.unsupportedBinaryFormat)
+        print("Detected public EC key DER format: \(format)")
+        switch format {
+        case .pkcs8:
+            try self.init(pkcs8: asn1)
+        }
+    }
+    
+    public init(pem: String) throws {
+        var format: ECPublicKeyFormat {
+            get throws {
+                for format in ECPublicKeyFormat.allCases {
+                    if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
+                        return format
+                    }
+                }
+                throw ECPublicKeyError.invalidPemStructure(reason: "Unknown PEM private key header or footer")
+            }
+        }
+        let pemFormat = try format
+        let rawPem = pem
+            .removed(text: Self.pemHeader)
+            .removed(text: Self.pemFooter)
+            .removed(text: "\n")
+        let der = try Base64Decoder.data(base64: rawPem)
+        switch pemFormat {
+        case .pkcs8:
+            try self.init(pkcs8: try der.asn1)
+        }
+    }
+    
+    private static func guessFormat(asn1: ASN1) -> ECPublicKeyFormat? {
+        .pkcs8
+    }
+    
+    /*
+     PublicKeyInfo ::= SEQUENCE {
+           algorithm   AlgorithmIdentifier,
+           PublicKey   BIT STRING
+         }
+         
+         AlgorithmIdentifier ::= SEQUENCE {
+           algorithm   OBJECT IDENTIFIER,
+           parameters  ANY DEFINED BY algorithm OPTIONAL
+         }
+     */
+    init(pkcs8 asn1: ASN1) throws {
         guard case .sequence(let elements) = asn1 else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
-        }
-        guard elements.count == 2 else {
-            throw ECPublicKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain 2 elements")
         }
         guard case .sequence(let oidList) = elements[safeIndex: 0] else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Main SEQUENCE should contain SEQUENCE with OBJECTID at index 0")
@@ -70,7 +114,7 @@ public struct ECPublicKey {
         guard keyType == .ecPublicKey else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Currently only EC keys are supported, but found \(keyTypeOID)")
         }
-
+        
         guard case .objectIdentifier(let curveTypeOID) = oidList[safeIndex: 1], let curveType = ECCurve(rawValue: curveTypeOID) else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected OBJECTID with curve type in SEQUENCE")
         }
@@ -85,24 +129,29 @@ public struct ECPublicKey {
         self.curve = curveType
     }
     
-    public init(pem: String) throws {
-        guard pem.contains(Self.pemHeader), pem.contains(Self.pemFooter) else {
-            throw ECPublicKeyError.invalidPemStructure(reason: "Invalid header or footer")
+}
+extension ECPublicKey {
+    public func der(format: ECPublicKeyFormat) throws -> Data {
+        switch format {
+        case .pkcs8:
+            try pkcs8der
         }
-        let rawPem = pem
-            .removed(text: Self.pemHeader)
-            .removed(text: Self.pemFooter)
-            .removed(text: "\n")
-        try self.init(der: Base64Decoder.data(base64: rawPem))
     }
     
-    public var der: Data {
+    public func pem(format: ECPublicKeyFormat) throws -> String {
+        let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
+        return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
+    }
+}
+
+// PKCS#8
+extension ECPublicKey {
+    public var pkcs8der: Data {
         get throws {
-            try asn1.data
+            try pkcs8asn1.data
         }
     }
-    
-    public var asn1: ASN1 {
+    public var pkcs8asn1: ASN1 {
         get throws {
             var keyData = UInt16(4).data
             keyData.append(x)
@@ -114,13 +163,6 @@ public struct ECPublicKey {
                 ]),
                 .bitString(keyData)
             ])
-        }
-    }
-    
-    public var pem: String {
-        get throws {
-            let base64Key = try der.base64EncodedString(options: .lineLength64Characters)
-            return Self.pemHeader + base64Key + Self.pemFooter
         }
     }
 }
