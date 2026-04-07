@@ -220,7 +220,7 @@ extension RSAPublicKey {
             ])
         }
     }
-    
+
     public var subjectPublicKeyInfoPem: String {
         get throws {
             let base64Key = try subjectPublicKeyInfoDer.base64EncodedString(options: .lineLength64Characters)
@@ -235,7 +235,6 @@ extension RSAPublicKey {
 
 extension RSAPublicKey: CustomStringConvertible {
     public var description: String {
-        "RSAPublicKey(n: \(n.hexString), e: \(e.hexString))"
+        "RSAPublicKey {\n\tn: \(n.hexString)\n\te: \(e.hexString))\n}"
     }
-    
 }

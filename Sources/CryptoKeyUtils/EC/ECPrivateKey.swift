@@ -242,3 +242,9 @@ public struct ECPrivateKey {
         return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }
 }
+
+extension ECPrivateKey: CustomStringConvertible {
+    public var description: String {
+        "ECPrivateKey {\n\td: \(self.d.hexString)\n\tx: \(self.publicKey.x.hexString)\n\ty: \(self.publicKey.y.hexString)\n\tcurve: \(self.curve)\n}"
+    }
+}

@@ -55,18 +55,16 @@ struct ECPublicKeyTests {
     }
     
     @Test func keyFromPEM() throws {
-        let pem = """
-        -----BEGIN PUBLIC KEY-----
-        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQFlk7Nn7MULhf/yadlMA9QAFdhIH
-        J14nqY9VS7eOkEsuTSfG26BCvTHFMmBJ8kGYpmchPr9h+jGRjp3VNda/ew==
-        -----END PUBLIC KEY-----
-        """
+        let pem =  """
+                    -----BEGIN PUBLIC KEY-----
+                    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIfuTD3xCiiDYWxcakhBjW80LYDxS
+                    1mEovWeuH4yN8WDStxcwQ2TCUmdoXl3xQ0DTuNJmHlkl6Tpk/6gzZQCr8A==
+                    -----END PUBLIC KEY-----
+                    """
         let key = try ECPublicKey(pem: pem)
-        
-        let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
-        let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
-
-        #expect(key.x.hexString == x)
-        #expect(key.y.hexString == y)
+        print(key)
+        #expect(key.x.hexString == "21FB930F7C428A20D85B171A9210635BCD0B603C52D66128BD67AE1F8C8DF160")
+        #expect(key.y.hexString == "D2B717304364C25267685E5DF14340D3B8D2661E5925E93A64FFA8336500ABF0")
+        #expect(key.curve == .secp256r1)
     }
 }

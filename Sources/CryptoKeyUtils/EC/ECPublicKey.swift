@@ -124,3 +124,9 @@ public struct ECPublicKey {
         }
     }
 }
+
+extension ECPublicKey: CustomStringConvertible {
+    public var description: String {
+        "ECPublicKey {\n\tx: \(self.x.hexString)\n\ty: \(self.y.hexString)\n\tcurve: \(self.curve)\n}"
+    }
+}
