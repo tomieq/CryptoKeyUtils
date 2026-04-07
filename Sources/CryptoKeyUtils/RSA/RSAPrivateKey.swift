@@ -20,9 +20,9 @@ public struct RSAPrivateKey {
     public let p: Data // prime1
     public let q: Data // prime2
     
-    public let exponent1: Data // d mod (p-1)
-    public let exponent2: Data // d mod (q-1)
-    public let coefficient: Data // (inverse of q) mod p
+    public let dp: Data // exponent1 d mod (p-1)
+    public let dq: Data // exponent2 d mod (q-1)
+    public let qi: Data // coefficient (inverse of q) mod p
     
     
     private static let oid = "1.2.840.113549.1.1.1"
@@ -126,9 +126,9 @@ public struct RSAPrivateKey {
         self.d = privateExponent
         self.p = prime1
         self.q = prime2
-        self.exponent1 = exponent1
-        self.exponent2 = exponent2
-        self.coefficient = coefficient
+        self.dp = exponent1
+        self.dq = exponent2
+        self.qi = coefficient
     }
     
     /*
@@ -196,9 +196,9 @@ extension RSAPrivateKey {
                 .integer(d),
                 .integer(p),
                 .integer(q),
-                .integer(exponent1),
-                .integer(exponent2),
-                .integer(coefficient)
+                .integer(dp),
+                .integer(dq),
+                .integer(qi)
             ])
         }
     }
@@ -229,6 +229,6 @@ extension RSAPrivateKey {
 
 extension RSAPrivateKey: CustomStringConvertible {
     public var description: String {
-        "RSAPrivateKey {\n\tn: \(publicKey.n.hexString)\n\te: \(publicKey.e.hexString)\n\td: \(d.hexString)\n\tp: \(p.hexString)\n\tq: \(q.hexString)\n\texponent1: \(exponent1.hexString)\n\texponent2: \(exponent2.hexString)\n\tcoefficient: \(coefficient.hexString)\n}"
+        "RSAPrivateKey {\n\tn: \(publicKey.n.hexString)\n\te: \(publicKey.e.hexString)\n\td: \(d.hexString)\n\tp: \(p.hexString)\n\tq: \(q.hexString)\n\tdp: \(dp.hexString)\n\tdq: \(dq.hexString)\n\tqi \(qi.hexString)\n}"
     }
 }
