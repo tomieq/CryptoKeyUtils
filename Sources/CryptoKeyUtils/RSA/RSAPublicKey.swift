@@ -165,12 +165,8 @@ extension RSAPublicKey {
     }
     
     public func pem(format: RSAPublicKeyFormat) throws -> String {
-        switch format {
-        case .pkcs1:
-            try pkcs1pem
-        case .subjectPublicKeyInfo:
-            try subjectPublicKeyInfoPem
-        }
+        let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
+        return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }
 }
 
@@ -188,13 +184,6 @@ extension RSAPublicKey {
                 .integer(n),
                 .integer(e)
             ])
-        }
-    }
-    
-    public var pkcs1pem: String {
-        get throws {
-            let base64Key = try pkcs1der.base64EncodedString(options: .lineLength64Characters)
-            return RSAPublicKeyFormat.pkcs1.pemHeader + "\n" + base64Key + "\n" + RSAPublicKeyFormat.pkcs1.pemFooter
         }
     }
 }
@@ -218,17 +207,6 @@ extension RSAPublicKey {
                 ]),
                 .bitString(publicKeyData)
             ])
-        }
-    }
-
-    public var subjectPublicKeyInfoPem: String {
-        get throws {
-            let base64Key = try subjectPublicKeyInfoDer.base64EncodedString(options: .lineLength64Characters)
-            return RSAPublicKeyFormat.subjectPublicKeyInfo.pemHeader +
-            "\n" +
-            base64Key +
-            "\n" +
-            RSAPublicKeyFormat.subjectPublicKeyInfo.pemFooter
         }
     }
 }

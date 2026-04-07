@@ -58,7 +58,7 @@ public struct ECPrivateKey {
     public init(der: Data) throws {
         let asn1 = try ASN1(data: der)
         let format = try Self.guessFormat(asn1: asn1).orThrow(ECPrivateKeyError.unsupportedBinaryFormat)
-        print("Detected private key DER format: \(format)")
+        print("Detected EC private key DER format: \(format)")
         switch format {
         case .sec1:
             try self.init(sec1: asn1)
@@ -79,7 +79,7 @@ public struct ECPrivateKey {
            case .octetString = elements[safeIndex: 2] {
             return .pkcs8
         }
-        print("Cannot detect DER format, unknown ASN1 sequence: \(asn1))")
+        print("Cannot detect EC DER format, unknown ASN1 sequence: \(asn1))")
         return nil
     }
     
@@ -180,7 +180,7 @@ public struct ECPrivateKey {
             }
         }
         let pemFormat = try format
-        print("Detected PEM in format \(pemFormat)")
+        print("Detected EC PEM in format \(pemFormat)")
         let rawPem = pem
             .removed(text: pemFormat.pemHeader)
             .removed(text: pemFormat.pemFooter)
