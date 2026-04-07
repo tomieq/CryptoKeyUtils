@@ -25,6 +25,7 @@ public struct RSAPrivateKey {
     public let coefficient: Data // (inverse of q) mod p
     
     
+    private static let oid = "1.2.840.113549.1.1.1"
     
     public init(pem: String) throws {
         var detectedFormat: RSAPrivateKeyFormat? = nil
@@ -47,7 +48,7 @@ public struct RSAPrivateKey {
         case .pkcs1:
             try self.init(pkcs1: try ASN1(data: der))
         case .pkcs8:
-            fatalError()
+            try self.init(pkcs8: try ASN1(data: der))
         }
     }
     
@@ -104,6 +105,36 @@ public struct RSAPrivateKey {
         self.exponent2 = exponent2
         self.coefficient = coefficient
     }
+    
+    /*
+     PrivateKeyInfo ::= SEQUENCE {
+       version                   INTEGER,
+       privateKeyAlgorithm       AlgorithmIdentifier,
+       privateKey                OCTET STRING, --- embedded pkcs1 format
+       attributes           [0]  OPTIONAL
+     }
+     */
+    init(pkcs8 asn1: ASN1) throws {
+        guard case .sequence(let elements) = asn1 else {
+            throw RSAPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
+        }
+        
+        guard case .integer(let version) = elements[safeIndex: 0], version == 0x00.data else {
+            throw RSAPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
+        }
+        guard case .sequence(let values) = elements[safeIndex: 1],
+              case .objectIdentifier(let oid) = values[safeIndex: 0] else {
+            throw RSAPrivateKeyError.invalidDerStructure(reason: "Missing OID for AlgorithmIdentifier")
+        }
+        guard oid == Self.oid else {
+            throw RSAPrivateKeyError.invalidDerStructure(reason: "Invalid OID for AlgorithmIdentifier. Expected \(Self.oid), got \(oid)")
+        }
+        guard case .octetString(let pkcs1Data) = elements[safeIndex: 2] else {
+            throw RSAPrivateKeyError.invalidDerStructure(reason: "Invalid octetString for privateKey")
+        }
+        let pkcs1 = try ASN1(data: pkcs1Data)
+        try self.init(pkcs1: pkcs1)
+    }
 }
 
 extension RSAPrivateKey {
@@ -113,7 +144,7 @@ extension RSAPrivateKey {
         case .pkcs1:
             try pkcs1der
         case .pkcs8:
-            fatalError()
+            try pkcs8der
         }
     }
     
@@ -143,6 +174,29 @@ extension RSAPrivateKey {
                 .integer(exponent1),
                 .integer(exponent2),
                 .integer(coefficient)
+            ])
+        }
+    }
+}
+
+
+// PKCS#8
+extension RSAPrivateKey {
+    public var pkcs8der: Data {
+        get throws {
+            try pkcs8asn1.data
+        }
+    }
+    
+    public var pkcs8asn1: ASN1 {
+        get throws {
+            return ASN1.sequence([
+                .integer(UInt8(0).data),
+                .sequence([
+                    .objectIdentifier(Self.oid),
+                    .null
+                ]),
+                .octetString(try pkcs1der)
             ])
         }
     }

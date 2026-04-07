@@ -127,7 +127,7 @@ public struct RSAPublicKey {
             throw RSAPublicKeyError.invalidDerStructure(reason: "Missing OID for AlgorithmIdentifier")
         }
         guard oid == self.oid else {
-            throw RSAPublicKeyError.invalidDerStructure(reason: "Invalid OID for AlgorithmIdentifier. Expecred \(self.oid), got \(oid)")
+            throw RSAPublicKeyError.invalidDerStructure(reason: "Invalid OID for AlgorithmIdentifier. Expected \(self.oid), got \(oid)")
         }
         guard case .bitString(var publicKeyData) = elements[safeIndex: 1] else {
             throw RSAPublicKeyError.invalidDerStructure(reason: "Missing bitstring with public key")
