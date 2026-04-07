@@ -67,7 +67,7 @@ public struct ECPrivateKey {
         }
     }
     
-    static func guessFormat(asn1: ASN1) -> ECBinaryFormat? {
+    static func guessFormat(asn1: ASN1) -> ECKeyFormat? {
         guard case .sequence(let elements) = asn1 else {
             return nil
         }
@@ -169,9 +169,9 @@ public struct ECPrivateKey {
     }
 
     public init(pem: String) throws {
-        var format: ECBinaryFormat {
+        var format: ECKeyFormat {
             get throws {
-                for format in ECBinaryFormat.allCases {
+                for format in ECKeyFormat.allCases {
                     if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
                         return format
                     }
@@ -189,7 +189,7 @@ public struct ECPrivateKey {
         try self.init(der: der)
     }
     
-    public func der(format: ECBinaryFormat) throws -> Data {
+    public func der(format: ECKeyFormat) throws -> Data {
         switch format {
         case .sec1:
             try sec1Der
@@ -237,7 +237,7 @@ public struct ECPrivateKey {
         }
     }
     
-    public func pem(format: ECBinaryFormat) throws -> String {
+    public func pem(format: ECKeyFormat) throws -> String {
         let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
         return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }

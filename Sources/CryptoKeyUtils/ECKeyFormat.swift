@@ -1,16 +1,16 @@
 //
-//  ECBinaryFormat.swift
+//  ECKeyFormat.swift
 //  CryptoKeyUtils
 //
 //  Created by Tomasz on 20/05/2025.
 //
 
-public enum ECBinaryFormat: String, CaseIterable {
+public enum ECKeyFormat: String, CaseIterable {
     case sec1
     case pkcs8
 }
 
-extension ECBinaryFormat {
+extension ECKeyFormat {
     var pemHeader: String {
         switch self {
         case .sec1:
