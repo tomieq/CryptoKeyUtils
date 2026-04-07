@@ -52,6 +52,31 @@ public struct RSAPrivateKey {
         }
     }
     
+    public init(der: Data) throws {
+        let asn1 = try ASN1(data: der)
+        let format = try Self.guessFormat(asn1: asn1).orThrow(RSAPrivateKeyError.unsupportedBinaryFormat)
+        print("Detected private RSA key DER format: \(format)")
+        switch format {
+        case .pkcs1:
+            try self.init(pkcs1: asn1)
+        case .pkcs8:
+            try self.init(pkcs8: asn1)
+        }
+    }
+    
+    private static func guessFormat(asn1: ASN1) -> RSAPrivateKeyFormat? {
+        guard case .sequence(let elements) = asn1 else {
+            return nil
+        }
+        if case .integer = elements[safeIndex: 0], case .integer = elements[safeIndex: 1] {
+            return .pkcs1
+        }
+        if case .integer = elements[safeIndex: 0], case .sequence = elements[safeIndex: 1], case .octetString = elements[safeIndex: 2] {
+            return .pkcs8
+        }
+        print("Cannot detect DER format, unknown ASN1 sequence: \(asn1))")
+        return nil
+    }
     /*
      RSAPrivateKey ::= SEQUENCE {
        version           INTEGER,
