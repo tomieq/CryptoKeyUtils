@@ -17,6 +17,7 @@ struct RSAPublicKeyTests {
             -----END PUBLIC KEY-----
             """
         let key = try RSAPublicKey(pem: pemString)
+        #expect(key.n.hexString == "00A8F7E069311610FDD2F70D2D82C89C5117E8FA72D6D3DFF429F38F8A7858678A2ECD4FB7C42E294A5129F14B7D1602F4020A8DB2535A2B7E0AABE3598CEF4301")
         
         let constructedPem = try key.pem(format: .subjectPublicKeyInfo)
         print(key)
@@ -32,6 +33,7 @@ struct RSAPublicKeyTests {
             -----END RSA PUBLIC KEY-----
             """
         let key = try RSAPublicKey(pem: pemString)
+        #expect(key.n.hexString == "00A8F7E069311610FDD2F70D2D82C89C5117E8FA72D6D3DFF429F38F8A7858678A2ECD4FB7C42E294A5129F14B7D1602F4020A8DB2535A2B7E0AABE3598CEF4301")
         
         let constructedPem = try key.pem(format: .pkcs1)
         print(key)

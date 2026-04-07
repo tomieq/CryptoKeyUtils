@@ -213,6 +213,6 @@ extension RSAPublicKey {
 
 extension RSAPublicKey: CustomStringConvertible {
     public var description: String {
-        "RSAPublicKey {\n\tn: \(n.hexString)\n\te: \(e.hexString))\n}"
+        "RSAPublicKey {\n\tn: \(n.hexString)\n\te: \(e.hexString)\n}"
     }
 }
