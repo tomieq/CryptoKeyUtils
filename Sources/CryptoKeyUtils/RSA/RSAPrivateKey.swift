@@ -28,23 +28,24 @@ public struct RSAPrivateKey {
     private static let oid = "1.2.840.113549.1.1.1"
     
     public init(pem: String) throws {
-        var detectedFormat: RSAPrivateKeyFormat? = nil
-        for format in RSAPrivateKeyFormat.allCases {
-            if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
-                detectedFormat = format
+        var format: RSAPrivateKeyFormat {
+            get throws {
+                for format in RSAPrivateKeyFormat.allCases {
+                    if pem.contains(format.pemHeader), pem.contains(format.pemFooter) {
+                        return format
+                    }
+                }
+                throw RSAPrivateKeyError.invalidPemStructure(reason: "Unknown PEM private key header or footer")
             }
         }
-        
-        guard let detectedFormat else {
-            throw RSAPrivateKeyError.invalidPemStructure(reason: "Invalid header or footer")
-        }
-        print("Detected Private RSA Key PEM in format \(detectedFormat)")
+        let pemFormat = try format
+        print("Detected Private RSA Key PEM in format \(pemFormat)")
         let rawPem = pem
-            .removed(text: detectedFormat.pemHeader)
-            .removed(text: detectedFormat.pemFooter)
+            .removed(text: pemFormat.pemHeader)
+            .removed(text: pemFormat.pemFooter)
             .removed(text: "\n")
         let der = try Base64Decoder.data(base64: rawPem)
-        switch detectedFormat {
+        switch pemFormat {
         case .pkcs1:
             try self.init(pkcs1: try ASN1(data: der))
         case .pkcs8:

@@ -72,7 +72,7 @@ public struct ECPrivateKey {
             return nil
         }
         if case .integer = elements[safeIndex: 0], case .octetString = elements[safeIndex: 1],
-            case .contextSpecificConstructed(tag: 0, _) = elements[safeIndex: 2], case .contextSpecificConstructed(tag: 1, _) = elements[safeIndex: 3]  {
+           case .contextSpecificConstructed(tag: 0, _) = elements[safeIndex: 2], case .contextSpecificConstructed(tag: 1, _) = elements[safeIndex: 3]  {
             return .sec1
         }
         if case .integer = elements[safeIndex: 0], case .sequence = elements[safeIndex: 1],
@@ -86,10 +86,10 @@ public struct ECPrivateKey {
     // https://www.ietf.org/rfc/rfc5915.txt
     /*
      ECPrivateKey ::= SEQUENCE {
-        version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
-        privateKey     OCTET STRING,
-        parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
-        publicKey  [1] BIT STRING OPTIONAL
+     version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+     privateKey     OCTET STRING,
+     parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+     publicKey  [1] BIT STRING OPTIONAL
      }
      */
     init(sec1 asn1: ASN1) throws {
@@ -120,10 +120,10 @@ public struct ECPrivateKey {
     // PKCS#8 https://www.ietf.org/rfc/rfc5208.txt
     /*
      PrivateKeyInfo ::= SEQUENCE {
-       version                   Version,
-       privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
-       privateKey                PrivateKey,
-       attributes           [0]  IMPLICIT Attributes OPTIONAL }
+     version                   Version,
+     privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
+     privateKey                PrivateKey,
+     attributes           [0]  IMPLICIT Attributes OPTIONAL }
      */
     init(pkcs8 asn1: ASN1) throws {
         
@@ -167,7 +167,7 @@ public struct ECPrivateKey {
         self.d = d
         self.curve = curve
     }
-
+    
     public init(pem: String) throws {
         var format: ECKeyFormat {
             get throws {
@@ -176,19 +176,26 @@ public struct ECPrivateKey {
                         return format
                     }
                 }
-                throw ECPublicKeyError.invalidPemStructure(reason: "Unknown PEM private key header or footer")
+                throw ECPrivateKeyError.invalidPemStructure(reason: "Unknown PEM private key header or footer")
             }
         }
         let pemFormat = try format
-        print("Detected EC PEM in format \(pemFormat)")
+        print("Detected EC Private PEM in format \(pemFormat)")
         let rawPem = pem
             .removed(text: pemFormat.pemHeader)
             .removed(text: pemFormat.pemFooter)
             .removed(text: "\n")
-        let der = try Base64Decoder.data(base64: rawPem)
-        try self.init(der: der)
+        let asn1 = try Base64Decoder.data(base64: rawPem).asn1
+        switch pemFormat {
+        case .sec1:
+            try self.init(sec1: asn1)
+        case .pkcs8:
+            try self.init(pkcs8: asn1)
+        }
     }
-    
+}
+
+extension ECPrivateKey {
     public func der(format: ECKeyFormat) throws -> Data {
         switch format {
         case .sec1:
@@ -198,6 +205,14 @@ public struct ECPrivateKey {
         }
     }
     
+    public func pem(format: ECKeyFormat) throws -> String {
+        let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
+        return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
+    }
+}
+
+// sec1
+extension ECPrivateKey {
     var sec1Der: Data {
         get throws {
             // 0x04 means that x and y are concatenated
@@ -213,7 +228,10 @@ public struct ECPrivateKey {
             ]).data
         }
     }
-    
+}
+
+// PKCS#8
+extension ECPrivateKey {
     var pkcs8Der: Data {
         get throws {
             // 0x04 means that x and y are concatenated
@@ -235,11 +253,6 @@ public struct ECPrivateKey {
                 .octetString(privateKey)
             ]).data
         }
-    }
-    
-    public func pem(format: ECKeyFormat) throws -> String {
-        let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
-        return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
     }
 }
 
