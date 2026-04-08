@@ -1,6 +1,10 @@
 # CryptoKeyUtils
 
-Simple library to convert raw curve points x, y, d key into `DER` and `PEM` format.
+Simple library to convert EC raw curve points x, y, d key into `DER` and `PEM` format.
+
+It also supports RSA private and public key handling (both `PEM` and `DER`).
+
+#EC
 
 ## Supported EC curves
 
@@ -53,6 +57,28 @@ let crv = "P-256"
 let key = try ECPrivateKey(.jwk(x: x, y: y, d: d, crv: crv))
 ```
 
+# RSA
+## Usage
+
+#### Create RSA private key from pem string:
+```swift
+let key = try RSAPrivateKey(pem: pemString)
+print(key)
+```
+#### Create RSA public key from pem string:
+```swift
+let key = try RSAPublicKey(pem: pemString)
+print(key)
+```
+#### Der support
+```swift
+let privKey = try RSAPrivateKey(der: derData)
+let pubKKey = try RSAPublicKey(der: derData)
+
+```
+
+# Utils
+
 #### Create signature from `r`, `s`:
 ```
 let signature = try Signature(.hexString(r: "1A19BD103D5EA607F6A40C86E4D24938ABBD3FD041A1EDA47D689B263BB5D797",
@@ -69,6 +95,16 @@ Sequence:
     Integer: 1A19BD103D5EA607F6A40C86E4D24938ABBD3FD041A1EDA47D689B263BB5D797
     Integer: 00EB57F23D543AA1007449292B4A64FB1C131517ADA9AABDF0BD4B03F08D6983E2
 ```
+
+### `CryptoKeyFactory`
+
+`CryptoKeyFactory` will guess proper object type based on ASN1 structure of given key. It will return `CryptoKey`.
+```swift
+let key = try CryptoKeyFactory.make(pem: pem)
+print(key)
+#expect(key is RSAPublicKey)
+```
+
 ## OpenSSL commands
 
 #### List all available EC curves
