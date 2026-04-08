@@ -4,7 +4,7 @@ Simple library to convert EC raw curve points x, y, d key into `DER` and `PEM` f
 
 It also supports RSA private and public key handling (both `PEM` and `DER`).
 
-#EC
+# EC points
 
 ## Supported EC curves
 
@@ -57,7 +57,7 @@ let crv = "P-256"
 let key = try ECPrivateKey(.jwk(x: x, y: y, d: d, crv: crv))
 ```
 
-# RSA
+# RSA primes
 ## Usage
 
 #### Create RSA private key from pem string:
@@ -152,6 +152,17 @@ The starting `04` in pub section is just meta data and is not part of `x` nor `y
 ```
 openssl asn1parse -inform DER -in signature.der
 ```
+
+## Key files
+
+RSA PKCS#1 key files begin with `-----BEGIN RSA PRIVATE KEY-----`
+
+RSA PKCS#8 key files begin with `-----BEGIN PRIVATE KEY-----`
+
+EC SEC1 key files begin with `-----BEGIN EC PRIVATE KEY-----`
+
+EC PKCS#8 key files begin with `-----BEGIN PRIVATE KEY-----`
+
 ## Swift Package Manager
 ```swift
 import PackageDescription
