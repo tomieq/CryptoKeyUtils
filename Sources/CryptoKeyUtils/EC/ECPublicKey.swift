@@ -20,7 +20,7 @@ public enum ECPublicKeyError: Error {
     case unsupportedCurve
 }
 
-public struct ECPublicKey {
+public struct ECPublicKey: CryptoKey {
     public let x: Data
     public let y: Data
     public let curve: ECCurve

@@ -14,7 +14,7 @@ public enum RSAPrivateKeyError: Error {
     case unsupportedBinaryFormat
 }
 
-public struct RSAPrivateKey {
+public struct RSAPrivateKey: CryptoKey {
     public let publicKey: RSAPublicKey
     public let d: Data // privateExponent
     public let p: Data // prime1

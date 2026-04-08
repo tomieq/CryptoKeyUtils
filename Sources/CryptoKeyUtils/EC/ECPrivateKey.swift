@@ -22,7 +22,7 @@ public enum ECPrivateKeyError: Error {
     case unsupportedBinaryFormat
 }
 
-public struct ECPrivateKey {
+public struct ECPrivateKey: CryptoKey {
     public let publicKey: ECPublicKey
     public let d: Data
     public let curve: ECCurve

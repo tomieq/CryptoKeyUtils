@@ -15,7 +15,7 @@ public enum RSAPublicKeyError: Error {
     case unsupportedBinaryFormat
 }
 
-public struct RSAPublicKey {
+public struct RSAPublicKey: CryptoKey {
     public let n: Data // modulus
     public let e: Data // publicExponent
     
