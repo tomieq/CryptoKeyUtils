@@ -229,6 +229,6 @@ extension RSAPrivateKey {
 
 extension RSAPrivateKey: CustomStringConvertible {
     public var description: String {
-        "RSAPrivateKey {\n\tn: \(publicKey.n.hexString)\n\te: \(publicKey.e.hexString)\n\td: \(d.hexString)\n\tp: \(p.hexString)\n\tq: \(q.hexString)\n\tdp: \(dp.hexString)\n\tdq: \(dq.hexString)\n\tqi \(qi.hexString)\n}"
+        "RSAPrivateKey (\(publicKey.bitSize) bits) {\n\tn: \(publicKey.n.hexString)\n\te: \(publicKey.e.hexString)\n\td: \(d.hexString)\n\tp: \(p.hexString)\n\tq: \(q.hexString)\n\tdp: \(dp.hexString)\n\tdq: \(dq.hexString)\n\tqi \(qi.hexString)\n}"
     }
 }

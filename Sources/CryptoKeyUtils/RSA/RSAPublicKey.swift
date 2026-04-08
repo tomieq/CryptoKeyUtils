@@ -19,6 +19,10 @@ public struct RSAPublicKey: CryptoKey {
     public let n: Data // modulus
     public let e: Data // publicExponent
     
+    var bitSize: Int {
+        n.drop(while: { $0 == 0 }).count * 8
+    }
+    
     static let oid = "1.2.840.113549.1.1.1"
     
     public init (n: Data, e: Data) {
@@ -203,6 +207,6 @@ extension RSAPublicKey {
 
 extension RSAPublicKey: CustomStringConvertible {
     public var description: String {
-        "RSAPublicKey {\n\tn: \(n.hexString)\n\te: \(e.hexString)\n}"
+        "RSAPublicKey (\(bitSize) bits)  {\n\tn: \(n.hexString)\n\te: \(e.hexString)\n}"
     }
 }
