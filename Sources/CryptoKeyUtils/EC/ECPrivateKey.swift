@@ -27,6 +27,8 @@ public struct ECPrivateKey: CryptoKey {
     public let d: Data
     public let curve: ECCurve
     
+    static let oid = "1.2.840.10045.2.1"
+    
     public init(x: Data, y: Data, d: Data, curve: ECCurve) {
         self.publicKey = ECPublicKey(x: x, y: y, curve: curve)
         self.d = d
@@ -120,7 +122,7 @@ public struct ECPrivateKey: CryptoKey {
      PrivateKeyInfo ::= SEQUENCE {
      version                   Version,
      privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
-     privateKey                PrivateKey,
+     privateKey                PrivateKey, -> OCTETSTRING
      attributes           [0]  IMPLICIT Attributes OPTIONAL }
      */
     init(pkcs8 asn1: ASN1) throws {

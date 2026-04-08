@@ -24,6 +24,8 @@ public struct ECPublicKey: CryptoKey {
     public let x: Data
     public let y: Data
     public let curve: ECCurve
+
+    static let oid = "1.2.840.10045.2.1"
     
     static let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
     static let pemFooter = "\n-----END PUBLIC KEY-----"

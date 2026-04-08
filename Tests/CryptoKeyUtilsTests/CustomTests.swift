@@ -16,9 +16,9 @@ struct CustomTests {
             cN6W+k8UvGf+Y/lDWNbFitQocabsDUvSN0edHH3UKP5QPTz4cOlyIPMrXQ==
             -----END PUBLIC KEY-----
             """
-        let key = try ECPublicKey(pem: pem)
+        let key = try CryptoKeyFactory.make(pem: pem)
         print(key)
-        print(try key.pem(format: .pkcs8))
+//        print(try key.pem(format: .pkcs8))
     }
 }
 

@@ -19,7 +19,7 @@ public struct RSAPublicKey: CryptoKey {
     public let n: Data // modulus
     public let e: Data // publicExponent
     
-    private static let oid = "1.2.840.113549.1.1.1"
+    static let oid = "1.2.840.113549.1.1.1"
     
     public init (n: Data, e: Data) {
         self.n = n

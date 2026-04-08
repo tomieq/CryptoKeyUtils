@@ -24,8 +24,7 @@ public struct RSAPrivateKey: CryptoKey {
     public let dq: Data // exponent2 d mod (q-1)
     public let qi: Data // coefficient (inverse of q) mod p
     
-    
-    private static let oid = "1.2.840.113549.1.1.1"
+    static let oid = "1.2.840.113549.1.1.1"
     
     public init(pem: String) throws {
         var format: RSAPrivateKeyFormat {

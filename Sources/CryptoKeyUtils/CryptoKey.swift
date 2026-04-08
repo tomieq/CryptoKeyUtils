@@ -6,7 +6,7 @@
 //
 import Foundation
 
-protocol CryptoKey: CustomStringConvertible {
+public protocol CryptoKey: CustomStringConvertible {
     init(der: Data) throws
     init(pem: String) throws
 }
