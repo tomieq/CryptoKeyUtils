@@ -170,7 +170,7 @@ import PackageDescription
 let package = Package(
     name: "MyServer",
     dependencies: [
-        .package(url: "https://github.com/tomieq/CryptoKeyUtils", branch: "master")
+        .package(url: "https://github.com/tomieq/CryptoKeyUtils", .upToNextMajor(from: "2.0.0"))
     ]
 )
 ```
