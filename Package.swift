@@ -12,7 +12,7 @@ let package = Package(
             targets: ["CryptoKeyUtils"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/tomieq/SwiftExtensions", .upToNextMajor(from: "1.0.1")),
+        .package(url: "https://github.com/tomieq/SwiftExtensions", .upToNextMajor(from: "2.0.0")),
         .package(url: "https://github.com/tomieq/SwiftyTLV", .upToNextMajor(from: "1.0.2"))
     ],
     targets: [
