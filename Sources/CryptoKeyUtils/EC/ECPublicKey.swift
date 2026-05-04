@@ -169,6 +169,18 @@ extension ECPublicKey {
     }
 }
 
+// X9.63
+extension ECPublicKey {
+    public var x963: Data {
+        get {
+            var keyData = UInt16(4).data
+            keyData.append(x)
+            keyData.append(y)
+            return keyData
+        }
+    }
+}
+
 extension ECPublicKey: CustomStringConvertible {
     public var description: String {
         "ECPublicKey {\n\tx: \(self.x.hexString)\n\ty: \(self.y.hexString)\n\tcurve: \(self.curve)\n}"
