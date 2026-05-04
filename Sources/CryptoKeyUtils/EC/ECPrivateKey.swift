@@ -234,7 +234,10 @@ extension ECPrivateKey {
 extension ECPrivateKey {
     var pkcs8Der: Data {
         get throws {
-            let publicKeyData = publicKey.x963
+            // 0x04 means that x and y are concatenated
+            var publicKeyData = UInt16(4).data
+            publicKeyData.append(publicKey.x)
+            publicKeyData.append(publicKey.y)
             
             let privateKey = try ASN1.sequence([
                 .integer(1.data),

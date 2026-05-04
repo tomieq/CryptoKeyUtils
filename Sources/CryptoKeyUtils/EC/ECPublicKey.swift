@@ -173,7 +173,7 @@ extension ECPublicKey {
 extension ECPublicKey {
     public var x963: Data {
         get {
-            var keyData = UInt16(4).data
+            var keyData = UInt8(4).data
             keyData.append(x)
             keyData.append(y)
             return keyData
