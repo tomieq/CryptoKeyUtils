@@ -11,13 +11,11 @@ import SwiftyTLV
 
 public enum ECPublicKeyInfo {
     case hexString(x: String, y: String, curve: ECCurve)
-    case jwk(x: String, y: String, crv: String)
 }
 
 public enum ECPublicKeyError: Error {
     case invalidDerStructure(reason: String)
     case invalidPemStructure(reason: String)
-    case unsupportedCurve
 }
 
 public struct ECPublicKey: CryptoKey {
@@ -41,6 +39,12 @@ public struct ECPublicKey: CryptoKey {
         self.y = Data(y)
         self.curve = curve
     }
+
+    public init(jwk: JWK) throws {
+        self.x = try Base64Decoder.data(base64: jwk.x)
+        self.y = try Base64Decoder.data(base64: jwk.y)
+        self.curve = jwk.crv
+    }
     
     public init(_ info: ECPublicKeyInfo) throws {
         switch info {
@@ -48,10 +52,6 @@ public struct ECPublicKey: CryptoKey {
             self.x = Data(hexString: x)
             self.y = Data(hexString: y)
             self.curve = curve
-        case .jwk(let x, let y, let crv):
-            self.x = try Base64Decoder.data(base64: x)
-            self.y = try Base64Decoder.data(base64: y)
-            self.curve = try ECCurve(jwk: crv).orThrow(ECPublicKeyError.unsupportedCurve)
         }
     }
     

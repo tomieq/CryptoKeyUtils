@@ -12,13 +12,12 @@ import SwiftyTLV
 
 public enum ECPrivateKeyInfo {
     case hexString(x: String, y: String, d: String, curve: ECCurve)
-    case jwk(x: String, y: String, d: String, crv: String)
 }
 
 public enum ECPrivateKeyError: Error {
     case invalidDerStructure(reason: String)
     case invalidPemStructure(reason: String)
-    case unsupportedCurve
+    case missingPrivateComponent
     case unsupportedBinaryFormat
 }
 
@@ -40,17 +39,22 @@ public struct ECPrivateKey: CryptoKey {
         self.d = Data(d)
         self.curve = curve
     }
-    
+
+    public init(jwk: JWK) throws {
+        guard let d = jwk.d else {
+            throw ECPrivateKeyError.missingPrivateComponent
+        }
+        self.publicKey = try ECPublicKey(jwk: jwk)
+        self.d = try Base64Decoder.data(base64: d)
+        self.curve = jwk.crv
+    }
+
     public init(_ info: ECPrivateKeyInfo) throws {
         switch info {
         case .hexString(let x, let y, let d, let curve):
             self.publicKey = try ECPublicKey(.hexString(x: x, y: y, curve: curve))
             self.d = Data(hexString: d)
             self.curve = curve
-        case .jwk(let x, let y, let d, let crv):
-            self.publicKey = try ECPublicKey(.jwk(x: x, y: y, crv: crv))
-            self.d = try Base64Decoder.data(base64: d)
-            self.curve = try ECCurve(jwk: crv).orThrow(ECPrivateKeyError.unsupportedCurve)
         }
         
     }

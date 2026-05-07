@@ -62,7 +62,7 @@ struct ECPrivateKeyTests {
         let d = "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
         let x = "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74"
         let y = "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
-        let key = try ECPrivateKey(.jwk(x: x, y: y, d: d, crv: "P-256"))
+        let key = try ECPrivateKey(jwk: JWK(kty: .ec, crv: .secp256r1, x: x, y: y, d: d))
 
         let publicDER = try key.publicKey.der(format: .pkcs8)
         let hex = "3059301306072A8648CE3D020106082A8648CE3D03010703420004495A81E097140FA96C7EFA8CAFE38A50D52985D367EB811ACBAD3DEFC6652FBE95FD2ED29323E25180CD98B1E6EE029B908C40880C369930CB5EB7C2D29854A2"
