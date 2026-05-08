@@ -36,3 +36,23 @@ extension ECCurve {
         self = curve
     }
 }
+
+public extension ECCurve {
+    var keySizeInBits: Int {
+        switch self {
+        case .secp256r1: return 256
+        case .secp384r1: return 384
+        case .secp521r1: return 521
+        case .curve25519: return 256
+        case .secp256k1: return 256
+        }
+    }
+    
+    var valueLength: Int {
+        switch self {
+        case .secp256r1, .secp256k1, .curve25519: return 32
+        case .secp384r1: return 48
+        case .secp521r1: return 66
+        }
+    }
+}
