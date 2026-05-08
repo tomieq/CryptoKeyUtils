@@ -112,13 +112,15 @@ public struct ECPrivateKey: CryptoKey {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
         }
         guard case .contextSpecificConstructed(tag: 1, let values) = elements[safeIndex: 3],
-              case .bitString(var publicData) = values[safeIndex: 0], publicData.count == 66 else {
+              case .bitString(var publicData) = values[safeIndex: 0], publicData.count == 2 + 2 * curve.valueLength else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
         guard try publicData.consume(bytes: 2).uInt16 == 0x04 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
         }
-        self.init(x: publicData.consume(bytes: 32), y: publicData.consume(bytes: 32), d: d, curve: curve)
+        self.init(x: publicData.consume(bytes: curve.valueLength),
+                  y: publicData.consume(bytes: curve.valueLength),
+                  d: d, curve: curve)
     }
     
     // PKCS#8 https://www.ietf.org/rfc/rfc5208.txt
@@ -161,13 +163,15 @@ public struct ECPrivateKey: CryptoKey {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing private key d")
         }
         guard case .contextSpecificConstructed(_, let values) = elements[safeIndex: 2],
-              case .bitString(var publicData) = values[safeIndex: 0], publicData.count == 66 else {
+              case .bitString(var publicData) = values[safeIndex: 0], publicData.count == 2 + 2 * curve.valueLength else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing public key")
         }
         guard try publicData.consume(bytes: 2).uInt16 == 0x04 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
         }
-        publicKey = ECPublicKey(x: publicData.consume(bytes: 32), y: publicData.consume(bytes: 32), curve: curve)
+        publicKey = ECPublicKey(x: publicData.consume(bytes: curve.valueLength),
+                                y: publicData.consume(bytes: curve.valueLength),
+                                curve: curve)
         self.d = d
         self.curve = curve
     }
