@@ -6,6 +6,22 @@ import CryptoKeyUtils
 
 struct SecKeyConvertibleTests {
     @Test
+    func rsaPublicKeyFromSecKey() throws {
+        let pemString = """
+            -----BEGIN PUBLIC KEY-----
+            MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf
+            9Cnzj4p4WGeKLs1Pt8QuKUpRKfFLfRYC9AIKjbJTWit+CqvjWYzvQwECAwEAAQ==
+            -----END PUBLIC KEY-----
+            """
+
+        let originalKey = try RSAPublicKey(pem: pemString)
+        let importedKey = try RSAPublicKey(secKey: try originalKey.secKey)
+
+        #expect(importedKey.n == originalKey.n)
+        #expect(importedKey.e == originalKey.e)
+    }
+
+    @Test
     func rsaPublicKeyToSecKey() throws {
         let pemString = """
             -----BEGIN PUBLIC KEY-----
@@ -18,6 +34,17 @@ struct SecKeyConvertibleTests {
         let secKey = try key.secKey
 
         #expect(try secKey.externalRepresentation() == key.pkcs1der)
+    }
+
+    @Test
+    func rsaPrivateKeyFromSecKey() throws {
+        let sourceKey = try makeRSAKeyPair(sizeInBits: 2048)
+        let importedKey = try RSAPrivateKey(secKey: sourceKey)
+        let importedSecKey = try importedKey.secKey
+        let importedData = try importedSecKey.externalRepresentation()
+        let sourceData = try sourceKey.externalRepresentation()
+
+        #expect(importedData == sourceData)
     }
 
     @Test
@@ -41,6 +68,18 @@ struct SecKeyConvertibleTests {
     }
 
     @Test
+    func ecPublicKeyFromSecKey() throws {
+        let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
+        let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
+        let originalKey = try ECPublicKey(.hexString(x: x, y: y, curve: .secp256r1))
+        let importedKey = try ECPublicKey(secKey: try originalKey.secKey)
+
+        #expect(importedKey.x == originalKey.x)
+        #expect(importedKey.y == originalKey.y)
+        #expect(importedKey.curve == originalKey.curve)
+    }
+
+    @Test
     func ecPrivateKeyToSecKey() throws {
         let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
         let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
@@ -51,6 +90,20 @@ struct SecKeyConvertibleTests {
         var expected = key.publicKey.x963
         expected.append(key.d)
         #expect(try secKey.externalRepresentation() == expected)
+    }
+
+    @Test
+    func ecPrivateKeyFromSecKey() throws {
+        let d = "53893267A86D63D134001E5690436FE6AFB05F04820BA58A2197347C97B5279A"
+        let x = "405964ECD9FB3142E17FFC9A765300F50005761207275E27A98F554BB78E904B"
+        let y = "2E4D27C6DBA042BD31C5326049F24198A667213EBF61FA31918E9DD535D6BF7B"
+        let originalKey = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
+        let importedKey = try ECPrivateKey(secKey: try originalKey.secKey)
+
+        #expect(importedKey.publicKey.x == originalKey.publicKey.x)
+        #expect(importedKey.publicKey.y == originalKey.publicKey.y)
+        #expect(importedKey.d == originalKey.d)
+        #expect(importedKey.curve == originalKey.curve)
     }
 
     @Test
