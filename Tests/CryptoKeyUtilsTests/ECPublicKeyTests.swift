@@ -69,6 +69,28 @@ struct ECPublicKeyTests {
         #expect(key.x.hexString == x)
         #expect(key.y.hexString == y)
     }
+
+    @Test func keyFromDERForP384() throws {
+        let x = String(repeating: "11", count: 48)
+        let y = String(repeating: "22", count: 48)
+        let originalKey = try ECPublicKey(.hexString(x: x, y: y, curve: .secp384r1))
+        let key = try ECPublicKey(der: try originalKey.der(format: .pkcs8))
+
+        #expect(key.x.hexString == x)
+        #expect(key.y.hexString == y)
+        #expect(key.curve == .secp384r1)
+    }
+
+    @Test func keyFromDERForP521() throws {
+        let x = String(repeating: "33", count: 66)
+        let y = String(repeating: "44", count: 66)
+        let originalKey = try ECPublicKey(.hexString(x: x, y: y, curve: .secp521r1))
+        let key = try ECPublicKey(der: try originalKey.der(format: .pkcs8))
+
+        #expect(key.x.hexString == x)
+        #expect(key.y.hexString == y)
+        #expect(key.curve == .secp521r1)
+    }
     
     @Test func keyFromPEM() throws {
         let pem =  """

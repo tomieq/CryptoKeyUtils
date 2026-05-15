@@ -120,14 +120,18 @@ public struct ECPublicKey: CryptoKey {
         guard case .objectIdentifier(let curveTypeOID) = oidList[safeIndex: 1], let curveType = ECCurve(rawValue: curveTypeOID) else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected OBJECTID with curve type in SEQUENCE")
         }
-        guard case .bitString(var numbers) = elements[safeIndex: 1], numbers.count == 66 else {
+        let expectedLength = 2 + 2 * curveType.valueLength
+        guard case .bitString(var numbers) = elements[safeIndex: 1] else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected BITSTRING with x and y values")
+        }
+        guard numbers.count == expectedLength else {
+            throw ECPublicKeyError.invalidDerStructure(reason: "Expected BITSTRING with x and y values of length \(expectedLength), got \(numbers.count)")
         }
         guard try numbers.consume(bytes: 2).uInt16 == 0x04 else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
         }
-        x = Data(numbers.consume(bytes: 32))
-        y = Data(numbers.consume(bytes: 32))
+        x = Data(numbers.consume(bytes: curveType.valueLength))
+        y = Data(numbers.consume(bytes: curveType.valueLength))
         self.curve = curveType
     }
     
