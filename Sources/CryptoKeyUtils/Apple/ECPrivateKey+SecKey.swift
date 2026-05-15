@@ -11,29 +11,17 @@ extension ECPrivateKey: SecKeyConvertible {
 
         let curve = try SecKeyUtils.curve(for: descriptor)
         let keyData = try SecKeyUtils.externalRepresentation(of: secKey)
-        let expectedLength = 1 + 3 * curve.valueLength
-        guard keyData.count == expectedLength else {
-            throw SecKeyConversionError.invalidExternalRepresentation(reason: "Expected EC private key length \(expectedLength), got \(keyData.count)")
+        let key = try ECPrivateKey(x963: keyData)
+        guard key.curve == curve else {
+            throw SecKeyConversionError.invalidExternalRepresentation(reason: "Expected EC private key curve \(curve), got \(key.curve)")
         }
-        guard keyData.first == 0x04 else {
-            throw SecKeyConversionError.invalidExternalRepresentation(reason: "Expected EC private key to start with 0x04")
-        }
-
-        let payload = keyData.dropFirst()
-        self.init(
-            x: Data(payload.prefix(curve.valueLength)),
-            y: Data(payload.dropFirst(curve.valueLength).prefix(curve.valueLength)),
-            d: Data(payload.dropFirst(2 * curve.valueLength)),
-            curve: curve
-        )
+        self = key
     }
 
     public var secKey: SecKey {
         get throws {
-            var keyData = publicKey.x963
-            keyData.append(d)
             return try SecKeyUtils.makeSecKey(
-                data: keyData,
+                data: x963,
                 keyType: try SecKeyUtils.secKeyType(for: curve),
                 keyClass: kSecAttrKeyClassPrivate,
                 keySizeInBits: curve.keySizeInBits

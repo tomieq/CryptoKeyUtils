@@ -18,6 +18,7 @@ public enum ECPrivateKeyError: Error {
     case invalidPemStructure(reason: String)
     case missingPrivateComponent
     case unsupportedBinaryFormat
+    case invalidPrefix(actual: UInt8?)
 }
 
 public struct ECPrivateKey: CryptoKey {
@@ -262,6 +263,21 @@ extension ECPrivateKey {
 
 // X9.63
 extension ECPrivateKey {
+    public init(x963: Data) throws {
+        let curve = try ECCurve.make(privateX963: x963)
+        guard x963.first == 0x04 else {
+            throw ECPrivateKeyError.invalidPrefix(actual: x963.first)
+        }
+
+        let payload = x963.dropFirst()
+        self.init(
+            x: Data(payload.prefix(curve.valueLength)),
+            y: Data(payload.dropFirst(curve.valueLength).prefix(curve.valueLength)),
+            d: Data(payload.dropFirst(2 * curve.valueLength)),
+            curve: curve
+        )
+    }
+
     public var x963: Data {
         get {
             var keyData = self.publicKey.x963

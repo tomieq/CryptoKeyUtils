@@ -4,6 +4,12 @@
 //
 //  Created by Tomasz on 20/05/2025.
 //
+import Foundation
+
+public enum ECCurveError: Error {
+    case unsupportedPrivateKeyLength(Int)
+    case unsupportedPublicKeyLength(Int)
+}
 
 public enum ECCurve: String, CaseIterable {
     case secp256r1 = "1.2.840.10045.3.1.7"
@@ -28,7 +34,7 @@ extension ECCurve {
             "secp256k1"
         }
     }
-    
+
     init?(jwk: String) {
         guard let curve = (Self.allCases.first { $0.jwk == jwk }) else {
             return nil
@@ -47,12 +53,40 @@ public extension ECCurve {
         case .secp256k1: return 256
         }
     }
-    
+
     var valueLength: Int {
         switch self {
         case .secp256r1, .secp256k1, .curve25519: return 32
         case .secp384r1: return 48
         case .secp521r1: return 66
+        }
+    }
+}
+
+extension ECCurve {
+    static func make(publicX963 data: Data) throws -> ECCurve {
+        switch data.count {
+        case 65:
+            .secp256r1
+        case 97:
+            .secp384r1
+        case 133:
+            .secp521r1
+        default:
+            throw ECCurveError.unsupportedPublicKeyLength(data.count)
+        }
+    }
+
+    static func make(privateX963 data: Data) throws -> ECCurve {
+        switch data.count {
+        case 97:
+            .secp256r1
+        case 145:
+            .secp384r1
+        case 199:
+            .secp521r1
+        default:
+            throw ECCurveError.unsupportedPrivateKeyLength(data.count)
         }
     }
 }

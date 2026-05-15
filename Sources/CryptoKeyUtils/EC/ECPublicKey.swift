@@ -16,6 +16,7 @@ public enum ECPublicKeyInfo {
 public enum ECPublicKeyError: Error {
     case invalidDerStructure(reason: String)
     case invalidPemStructure(reason: String)
+    case invalidPrefix(actual: UInt8?)
 }
 
 public struct ECPublicKey: CryptoKey {
@@ -24,16 +25,16 @@ public struct ECPublicKey: CryptoKey {
     public let curve: ECCurve
 
     static let oid = "1.2.840.10045.2.1"
-    
+
     static let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
     static let pemFooter = "\n-----END PUBLIC KEY-----"
-    
+
     public init(x: Data, y: Data, curve: ECCurve) {
         self.x = x
         self.y = y
         self.curve = curve
     }
-    
+
     public init(x: [UInt8], y: [UInt8], curve: ECCurve) {
         self.x = Data(x)
         self.y = Data(y)
@@ -45,7 +46,7 @@ public struct ECPublicKey: CryptoKey {
         self.y = try Base64Decoder.data(base64: jwk.y)
         self.curve = jwk.crv
     }
-    
+
     public init(_ info: ECPublicKeyInfo) throws {
         switch info {
         case .hexString(let x, let y, let curve):
@@ -54,7 +55,7 @@ public struct ECPublicKey: CryptoKey {
             self.curve = curve
         }
     }
-    
+
     public init(der: Data) throws {
         let asn1 = try der.asn1
         let format = try Self.guessFormat(asn1: asn1).orThrow(RSAPublicKeyError.unsupportedBinaryFormat)
@@ -64,7 +65,7 @@ public struct ECPublicKey: CryptoKey {
             try self.init(pkcs8: asn1)
         }
     }
-    
+
     public init(pem: String) throws {
         var format: ECPublicKeyFormat {
             get throws {
@@ -87,17 +88,17 @@ public struct ECPublicKey: CryptoKey {
             try self.init(pkcs8: try der.asn1)
         }
     }
-    
+
     private static func guessFormat(asn1: ASN1) -> ECPublicKeyFormat? {
         .pkcs8
     }
-    
+
     /*
      PublicKeyInfo ::= SEQUENCE {
            algorithm   AlgorithmIdentifier,
            PublicKey   BIT STRING
          }
-         
+
          AlgorithmIdentifier ::= SEQUENCE {
            algorithm   OBJECT IDENTIFIER,
            parameters  ANY DEFINED BY algorithm OPTIONAL
@@ -116,7 +117,7 @@ public struct ECPublicKey: CryptoKey {
         guard keyType == .ecPublicKey else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Currently only EC keys are supported, but found \(keyTypeOID)")
         }
-        
+
         guard case .objectIdentifier(let curveTypeOID) = oidList[safeIndex: 1], let curveType = ECCurve(rawValue: curveTypeOID) else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Expected OBJECTID with curve type in SEQUENCE")
         }
@@ -130,12 +131,12 @@ public struct ECPublicKey: CryptoKey {
         guard try numbers.consume(bytes: 2).uInt16 == 0x04 else {
             throw ECPublicKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
         }
-        x = Data(numbers.consume(bytes: curveType.valueLength))
-        y = Data(numbers.consume(bytes: curveType.valueLength))
+        self.x = Data(numbers.consume(bytes: curveType.valueLength))
+        self.y = Data(numbers.consume(bytes: curveType.valueLength))
         self.curve = curveType
     }
-    
 }
+
 extension ECPublicKey {
     public func der(format: ECPublicKeyFormat) throws -> Data {
         switch format {
@@ -143,7 +144,7 @@ extension ECPublicKey {
             try pkcs8der
         }
     }
-    
+
     public func pem(format: ECPublicKeyFormat) throws -> String {
         let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
         return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
@@ -154,18 +155,19 @@ extension ECPublicKey {
 extension ECPublicKey {
     public var pkcs8der: Data {
         get throws {
-            try pkcs8asn1.data
+            try self.pkcs8asn1.data
         }
     }
+
     public var pkcs8asn1: ASN1 {
         get throws {
             var keyData = UInt16(4).data
-            keyData.append(x)
-            keyData.append(y)
+            keyData.append(self.x)
+            keyData.append(self.y)
             return ASN1.sequence([
                 .sequence([
                     .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
-                    .objectIdentifier(curve.rawValue)
+                    .objectIdentifier(self.curve.rawValue)
                 ]),
                 .bitString(keyData)
             ])
@@ -175,11 +177,25 @@ extension ECPublicKey {
 
 // X9.63
 extension ECPublicKey {
+    public init(x963: Data) throws {
+        let curve = try ECCurve.make(publicX963: x963)
+        guard x963.first == 0x04 else {
+            throw ECPublicKeyError.invalidPrefix(actual: x963.first)
+        }
+
+        let payload = x963.dropFirst()
+        self.init(
+            x: Data(payload.prefix(curve.valueLength)),
+            y: Data(payload.dropFirst(curve.valueLength)),
+            curve: curve
+        )
+    }
+
     public var x963: Data {
         get {
             var keyData = UInt8(4).data
-            keyData.append(x)
-            keyData.append(y)
+            keyData.append(self.x)
+            keyData.append(self.y)
             return keyData
         }
     }
