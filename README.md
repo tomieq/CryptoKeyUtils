@@ -4,6 +4,49 @@ Simple library to convert EC raw curve points x, y, d key into `DER` and `PEM` f
 
 It also supports RSA private and public key handling (both `PEM` and `DER`).
 
+On Apple platforms it also supports conversion to and from `SecKey`.
+
+## Apple `SecKey` support
+
+`SecKey` integration is available only when `Security` can be imported, so the package still builds on Linux without any Apple-specific dependencies.
+
+Supported `SecKey` conversions:
+- `RSAPublicKey <-> SecKey`
+- `RSAPrivateKey <-> SecKey`
+- `ECPublicKey <-> SecKey`
+- `ECPrivateKey <-> SecKey`
+
+For EC keys, `SecKey` support is limited to curves supported by Apple's `Security` framework:
+- `secp256r1`
+- `secp384r1`
+- `secp521r1`
+
+`curve25519` and `secp256k1` remain supported by the library for `PEM` and `DER`, but they are not supported for `SecKey` conversion.
+
+Example:
+
+```swift
+#if canImport(Security)
+import Security
+
+let publicKey = try RSAPublicKey(pem: pemString)
+let secKey = try publicKey.secKey
+let importedBack = try RSAPublicKey(secKey: secKey)
+#endif
+```
+
+For EC keys the same pattern works:
+
+```swift
+#if canImport(Security)
+import Security
+
+let key = try ECPrivateKey(.hexString(x: x, y: y, d: d, curve: .secp256r1))
+let secKey = try key.secKey
+let importedBack = try ECPrivateKey(secKey: secKey)
+#endif
+```
+
 # EC points
 
 ## Supported EC curves
@@ -170,7 +213,7 @@ import PackageDescription
 let package = Package(
     name: "MyServer",
     dependencies: [
-        .package(url: "https://github.com/tomieq/CryptoKeyUtils", .upToNextMajor(from: "2.0.0"))
+        .package(url: "https://github.com/tomieq/CryptoKeyUtils", .upToNextMajor(from: "2.1.0"))
     ]
 )
 ```
