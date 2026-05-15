@@ -206,6 +206,62 @@ EC SEC1 key files begin with `-----BEGIN EC PRIVATE KEY-----`
 
 EC PKCS#8 key files begin with `-----BEGIN PRIVATE KEY-----`
 
+
+## `SecKey` <-> `CryptoKit`
+
+`CryptoKit` does not work with RSA keys, so the bridge below applies to EC keys only.
+
+With `CryptoKeyUtils` you can use `SecKey` as the Apple-platform boundary and `CryptoKit` as the high-level API. The common path is:
+
+- `SecKey -> CryptoKeyUtils -> CryptoKit`
+- `CryptoKit -> CryptoKeyUtils -> SecKey`
+
+The example below uses `P256.Signing`, but the same pattern works for:
+
+- `P256.KeyAgreement` with `.secp256r1` and `coordinateLength = 32`
+- `P384.Signing` or `P384.KeyAgreement` with `.secp384r1` and `coordinateLength = 48`
+- `P521.Signing` or `P521.KeyAgreement` with `.secp521r1` and `coordinateLength = 66`
+
+```swift
+#if canImport(Security) && canImport(CryptoKit)
+import Foundation
+import CryptoKit
+import Security
+import CryptoKeyUtils
+
+func secKeyToCryptoKit(secKey: SecKey) throws -> P256.Signing.PrivateKey {
+    let key = try ECPrivateKey(secKey: secKey)
+    return try P256.Signing.PrivateKey(rawRepresentation: key.d)
+}
+
+func cryptoKitToSecKey(privateKey: P256.Signing.PrivateKey) throws -> SecKey {
+    var x963 = privateKey.publicKey.x963Representation
+    x963.append(privateKey.rawRepresentation)
+
+    let key = try ECPrivateKey(x963: x963)
+
+    return try key.secKey
+}
+
+func secKeyPublicToCryptoKit(secKey: SecKey) throws -> P256.Signing.PublicKey {
+    let key = try ECPublicKey(secKey: secKey)
+    return try P256.Signing.PublicKey(x963Representation: key.x963)
+}
+
+func cryptoKitPublicToSecKey(publicKey: P256.Signing.PublicKey) throws -> SecKey {
+    let key = try ECPublicKey(x963: publicKey.x963Representation)
+    return try key.secKey
+}
+#endif
+```
+
+Notes:
+
+- `CryptoKit` uses `rawRepresentation` for EC private keys.
+- `CryptoKit` uses `x963Representation` for EC public keys.
+- In this package, `SecKey` support is available only for `.secp256r1`, `.secp384r1`, and `.secp521r1`.
+- `curve25519` and `secp256k1` can still be converted to `PEM` and `DER`, but not to `SecKey`.
+
 ## Swift Package Manager
 ```swift
 import PackageDescription
