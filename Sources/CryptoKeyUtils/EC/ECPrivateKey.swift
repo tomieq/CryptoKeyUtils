@@ -9,7 +9,6 @@ import Foundation
 import SwiftExtensions
 import SwiftyTLV
 
-
 public enum ECPrivateKeyInfo {
     case hexString(x: String, y: String, d: String, curve: ECCurve)
 }
@@ -25,15 +24,15 @@ public struct ECPrivateKey: CryptoKey {
     public let publicKey: ECPublicKey
     public let d: Data
     public let curve: ECCurve
-    
+
     static let oid = "1.2.840.10045.2.1"
-    
+
     public init(x: Data, y: Data, d: Data, curve: ECCurve) {
         self.publicKey = ECPublicKey(x: x, y: y, curve: curve)
         self.d = d
         self.curve = curve
     }
-    
+
     public init(x: [UInt8], y: [UInt8], d: [UInt8], curve: ECCurve) {
         self.publicKey = ECPublicKey(x: x, y: y, curve: curve)
         self.d = Data(d)
@@ -56,9 +55,8 @@ public struct ECPrivateKey: CryptoKey {
             self.d = Data(hexString: d)
             self.curve = curve
         }
-        
     }
-    
+
     public init(der: Data) throws {
         let asn1 = try ASN1(data: der)
         let format = try Self.guessFormat(asn1: asn1).orThrow(ECPrivateKeyError.unsupportedBinaryFormat)
@@ -70,13 +68,13 @@ public struct ECPrivateKey: CryptoKey {
             try self.init(pkcs8: asn1)
         }
     }
-    
+
     static func guessFormat(asn1: ASN1) -> ECPrivateKeyFormat? {
         guard case .sequence(let elements) = asn1 else {
             return nil
         }
         if case .integer = elements[safeIndex: 0], case .octetString = elements[safeIndex: 1],
-           case .contextSpecificConstructed(tag: 0, _) = elements[safeIndex: 2], case .contextSpecificConstructed(tag: 1, _) = elements[safeIndex: 3]  {
+           case .contextSpecificConstructed(tag: 0, _) = elements[safeIndex: 2], case .contextSpecificConstructed(tag: 1, _) = elements[safeIndex: 3] {
             return .sec1
         }
         if case .integer = elements[safeIndex: 0], case .sequence = elements[safeIndex: 1],
@@ -86,7 +84,7 @@ public struct ECPrivateKey: CryptoKey {
         print("Cannot detect EC DER format, unknown ASN1 sequence: \(asn1))")
         return nil
     }
-    
+
     // https://www.ietf.org/rfc/rfc5915.txt
     /*
      ECPrivateKey ::= SEQUENCE {
@@ -97,7 +95,6 @@ public struct ECPrivateKey: CryptoKey {
      }
      */
     init(sec1 asn1: ASN1) throws {
-        
         guard case .sequence(let elements) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
@@ -122,7 +119,7 @@ public struct ECPrivateKey: CryptoKey {
                   y: publicData.consume(bytes: curve.valueLength),
                   d: d, curve: curve)
     }
-    
+
     // PKCS#8 https://www.ietf.org/rfc/rfc5208.txt
     /*
      PrivateKeyInfo ::= SEQUENCE {
@@ -132,7 +129,6 @@ public struct ECPrivateKey: CryptoKey {
      attributes           [0]  IMPLICIT Attributes OPTIONAL }
      */
     init(pkcs8 asn1: ASN1) throws {
-        
         guard case .sequence(let sequenceElems) = asn1 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Expected opening SEQUENCE")
         }
@@ -142,7 +138,7 @@ public struct ECPrivateKey: CryptoKey {
         guard case .integer(let version) = sequenceElems[safeIndex: 0], version == 0x00.data else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Invalid Version")
         }
-        
+
         guard case .sequence(let values) = sequenceElems[safeIndex: 1],
               case .objectIdentifier(let oid) = values[safeIndex: 1], let curve = ECCurve(rawValue: oid) else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing or invalid OID for AlgorithmIdentifier")
@@ -169,13 +165,13 @@ public struct ECPrivateKey: CryptoKey {
         guard try publicData.consume(bytes: 2).uInt16 == 0x04 else {
             throw ECPrivateKeyError.invalidDerStructure(reason: "Missing 0x04 padding in BITSTRING with x and y values")
         }
-        publicKey = ECPublicKey(x: publicData.consume(bytes: curve.valueLength),
-                                y: publicData.consume(bytes: curve.valueLength),
-                                curve: curve)
+        self.publicKey = ECPublicKey(x: publicData.consume(bytes: curve.valueLength),
+                                     y: publicData.consume(bytes: curve.valueLength),
+                                     curve: curve)
         self.d = d
         self.curve = curve
     }
-    
+
     public init(pem: String) throws {
         var format: ECPrivateKeyFormat {
             get throws {
@@ -212,7 +208,7 @@ extension ECPrivateKey {
             try pkcs8Der
         }
     }
-    
+
     public func pem(format: ECPrivateKeyFormat) throws -> String {
         let base64Key = try der(format: format).base64EncodedString(options: .lineLength64Characters)
         return format.pemHeader + "\n" + base64Key + "\n" + format.pemFooter
@@ -225,13 +221,13 @@ extension ECPrivateKey {
         get throws {
             // 0x04 means that x and y are concatenated
             var publicKeyData = UInt16(4).data
-            publicKeyData.append(publicKey.x)
-            publicKeyData.append(publicKey.y)
-            
+            publicKeyData.append(self.publicKey.x)
+            publicKeyData.append(self.publicKey.y)
+
             return try ASN1.sequence([
                 .integer(1.data),
-                .octetString(d),
-                .contextSpecificConstructed(tag: 0, [.objectIdentifier(curve.rawValue)]),
+                .octetString(self.d),
+                .contextSpecificConstructed(tag: 0, [.objectIdentifier(self.curve.rawValue)]),
                 .contextSpecificConstructed(tag: 1, [.bitString(publicKeyData)])
             ]).data
         }
@@ -244,22 +240,33 @@ extension ECPrivateKey {
         get throws {
             // 0x04 means that x and y are concatenated
             var publicKeyData = UInt16(4).data
-            publicKeyData.append(publicKey.x)
-            publicKeyData.append(publicKey.y)
-            
+            publicKeyData.append(self.publicKey.x)
+            publicKeyData.append(self.publicKey.y)
+
             let privateKey = try ASN1.sequence([
                 .integer(1.data),
-                .octetString(d),
+                .octetString(self.d),
                 .contextSpecificConstructed(tag: 1, [.bitString(publicKeyData)])
             ]).data
             return try ASN1.sequence([
                 .integer(0.data),
                 .sequence([
                     .objectIdentifier(CryptoOID.ecPublicKey.rawValue),
-                    .objectIdentifier(curve.rawValue)
+                    .objectIdentifier(self.curve.rawValue)
                 ]),
                 .octetString(privateKey)
             ]).data
+        }
+    }
+}
+
+// X9.63
+extension ECPrivateKey {
+    public var x963: Data {
+        get {
+            var keyData = self.publicKey.x963
+            keyData.append(self.d)
+            return keyData
         }
     }
 }
